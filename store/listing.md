@@ -45,6 +45,22 @@ Developer Tools
 
 English
 
+**Homepage URL**
+
+https://github.com/hismethod/pr-focus
+
+**Support URL** (optional)
+
+https://github.com/hismethod/pr-focus/issues
+
+**Official URL**
+
+None. It lists only sites verified in Google Search Console, and there is none.
+
+**Mature content**
+
+No
+
 ## Graphic assets
 
 | Asset | File | Status |
@@ -91,9 +107,30 @@ All three certifications apply:
 
 **Privacy policy**
 
-`PRIVACY.md` in this repository. The store needs it at a public URL. The Chrome Web Store user data FAQ asks for a privacy policy even when data is only stored locally or in Chrome sync storage, so publish it rather than leaving the field empty.
+https://github.com/hismethod/pr-focus/blob/main/PRIVACY.md
 
-## Notes for the reviewer
+The Chrome Web Store user data FAQ asks for a privacy policy even when data is only stored locally or in Chrome sync storage, so fill the field in.
+
+## Distribution tab
+
+| Field | Value |
+| --- | --- |
+| Paid item | No. Free, with no in-app purchases. |
+| Visibility | Public |
+| Regions | All regions |
+
+## Account page
+
+| Field | Value |
+| --- | --- |
+| Publisher name | The owner's choice. It shows as "Offered by" on the listing. |
+| Contact email | mail@jungmin.me. The store sends a verification link to it. |
+| Physical address | Not needed. It is only for items that sell something. |
+| Trusted testers | Empty |
+
+## Test instructions tab (optional)
+
+The tab is meant for extensions that need credentials. PR Focus needs none, so these notes are enough.
 
 ```
 1. Sign in to GitHub. (It also works signed out, on public repositories.)
@@ -106,7 +143,6 @@ The extension has no account, makes no network requests and uses no remote code.
 
 ## Before submitting
 
-- Choose the store and the developer account.
-- Publish `PRIVACY.md` at a public URL and add a contact address to it.
+- Register the developer account and verify the contact email.
 - Decide the release version. `manifest.json` and `package.json` are at 0.2.0.
 - Optional: a Linear button screenshot from a public repository, and the promo tiles.

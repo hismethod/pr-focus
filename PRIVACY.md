@@ -9,4 +9,6 @@ PR Focus does not collect, transmit, sell or share any data.
 - **What it does not do.** No network requests, no analytics, no tracking, no remote code, no GitHub or Linear token.
 - **Linear buttons** are plain links. Opening one takes you to linear.app, where Linear's own privacy policy applies.
 
-Contact: add a contact address before publishing.
+Contact: mail@jungmin.me
+
+Source code: https://github.com/hismethod/pr-focus
