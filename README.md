@@ -46,6 +46,7 @@ Stored in `chrome.storage.sync`, so they follow your browser profile. Only the s
 - `src/github.js`: **every GitHub DOM selector**, plus the functions that read a PR row or a PR page.
 - `src/content.js`: hides rows, draws the count bar and Linear buttons. Re-applied on DOM changes through a `MutationObserver` (batched to one pass per animation frame).
 - `src/options.html` / `src/options.js`: the popup and options page (same file).
+- `icons/`: `icon.svg` is the source of the extension icon; the 16, 32, 48 and 128 px PNGs are renders of it.
 
 No build step and no dependencies.
 
