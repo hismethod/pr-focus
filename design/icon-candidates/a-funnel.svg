@@ -1,0 +1,5 @@
+<!-- Candidate A: a filter funnel on a dark tile. Drawn on a 16-unit grid so the 16 px PNG stays sharp. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <rect width="16" height="16" rx="3.5" fill="#1b2433"/>
+  <path d="M2 3h12v2l-5 5v4l-2-1v-3L2 5z" fill="#ffc53d"/>
+</svg>

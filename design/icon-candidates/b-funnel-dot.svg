@@ -1,0 +1,6 @@
+<!-- Candidate B: a filter funnel letting one dot (the PR that needs you) through, on a dark tile. 16-unit grid. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <rect width="16" height="16" rx="3.5" fill="#1b2433"/>
+  <path d="M2 2h12v2L9 8.5V10H7V8.5L2 4z" fill="#ffc53d"/>
+  <circle cx="8" cy="13" r="1.5" fill="#fff"/>
+</svg>
