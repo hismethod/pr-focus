@@ -1,7 +1,0 @@
-<!-- Candidate C: a pull request hint (two dots joined by a line) next to a filter funnel, no tile. 16-unit grid. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <path d="M3.5 4v8" stroke="#7b8698" stroke-width="1.5"/>
-  <circle cx="3.5" cy="3.5" r="2" fill="#7b8698"/>
-  <circle cx="3.5" cy="12.5" r="2" fill="#7b8698"/>
-  <path d="M7 2h9v2l-3.5 4v5.5l-2-1V8L7 4z" fill="#0d9488"/>
-</svg>

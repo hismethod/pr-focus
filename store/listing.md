@@ -55,6 +55,8 @@ English
 | Small promo tile, 440x280 | | Optional, not made. |
 | Marquee promo tile, 1400x560 | | Optional, not made. |
 
+The icon is an original drawing of a cat head with a filter funnel for a nose. It is not GitHub's Octocat or Invertocat mark and does not reuse their shapes; keep it that way if the icon changes.
+
 Both screenshots are of `github.com/dependabot/dependabot-core/pulls`, a public repository, scrolled so the signed-in account in GitHub's header is out of view. Take new screenshots from public repositories only.
 
 There is no screenshot of the Linear button yet. It needs a public repository whose pull request titles carry Linear keys.
