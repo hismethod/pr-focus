@@ -16,6 +16,8 @@ const gh = (() => {
     prBranchLinks: 'header a[href*="/tree/"]',
     // Not our own buttons: they are Linear issue links too, and reading them back would pin a stale workspace.
     linearIssueLink: 'a[href^="https://linear.app/"][href*="/issue/"]:not(.pr-focus-linear a)',
+    // A comment by Linear's GitHub app. Its linkback names the issue the PR is linked to.
+    linearBotComment: 'article:has([data-testid="comment-header"] a[href^="/apps/linear"])',
   };
 
   const lists = () => document.querySelectorAll(SEL.list);
@@ -62,13 +64,12 @@ const gh = (() => {
       title: h1.textContent,
       // The header lists the base branch first and the head branch last.
       branch: branches.length > 1 ? branches[branches.length - 1].textContent.trim() : '',
-      linearHref: document.querySelector(SEL.linearIssueLink)?.href || '',
+      // Linear's own linkback first; otherwise the first Linear issue link on the page (usually the PR body).
+      linearHref:
+        (document.querySelector(`${SEL.linearBotComment} ${SEL.linearIssueLink}`) || document.querySelector(SEL.linearIssueLink))
+          ?.href || '',
     };
   }
 
-  // Workspace slug from any Linear issue link on the page, if there is one.
-  const linearWorkspaceOnPage = () =>
-    prFocus.parseLinearIssueUrl(document.querySelector(SEL.linearIssueLink)?.href)?.workspace || '';
-
-  return { viewer, lists, prRows, readRow, rowTitleAnchor, isPrPage, readPrPage, linearWorkspaceOnPage };
+  return { viewer, lists, prRows, readRow, rowTitleAnchor, isPrPage, readPrPage };
 })();

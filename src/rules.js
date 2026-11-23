@@ -1,6 +1,6 @@
 // Pure rule logic, no DOM. Loaded by the content script, the options page and the unit tests.
 const prFocus = (() => {
-  const DEFAULTS = { hideBots: true, hideDrafts: true, titlePattern: '', linearWorkspace: '' };
+  const DEFAULTS = { hideBots: true, hideDrafts: true, titlePattern: '', linearWorkspace: '', linearTeams: '' };
 
   const BOT_LOGINS = ['dependabot', 'dependabot-preview', 'renovate', 'renovate-bot', 'github-actions'];
 
@@ -40,20 +40,28 @@ const prFocus = (() => {
   const ROW_AUTHOR = /[\w.-]+\/[\w.-]+\s*#\s*\d+\s*[•·]\s*([^\s•·]+)\s*(?:[•·]|opened\b)/;
   const authorFromRowText = (text) => (ROW_AUTHOR.exec(text || '') || [])[1] || '';
 
-  // shortcut: prefixes that look like issue keys but never are; add a "team keys" option if false positives remain.
-  const NOT_KEYS = new Set(['CVE', 'GHSA', 'HTTP', 'ISO', 'PEP', 'RFC', 'SHA', 'TLS', 'UTF']);
-  // Titles: upper-case keys like ENG-123. Branches: Linear's own lower-case form, at the start of a path segment.
+  // Prefixes that look like issue keys but never are. Not used when the team keys option lists the real ones.
+  const NOT_KEYS = new Set([
+    ...['CVE', 'GHSA', 'HTTP', 'ISO', 'PEP', 'RFC', 'SHA', 'TLS', 'UTF'],
+    ...['BUGFIX', 'FEATURE', 'FIX', 'HOTFIX', 'RELEASE'],
+  ]);
+  // Titles: upper-case keys like ENG-123.
   const TITLE_KEY = /\b([A-Z]{2}[A-Z0-9]{0,5})-(\d+)\b/g;
-  const BRANCH_KEY = /(?:^|[/:])([a-z]{2}[a-z0-9]{0,5})-(\d+)(?![a-z0-9])/gi;
+  // Branches: Linear's own form at the start of a path segment, "eng-123" or "eng-123-some-title".
+  // A version such as "eslint-9.x" or "lodash-4.17.21" is not one.
+  const BRANCH_KEY = /(?:^|[/:])([a-z]{2}[a-z0-9]{0,5})-(\d+)(?=-|$)/gi;
 
-  function keysIn(text, re) {
+  // Team keys option: "ENG, ops" -> Set { 'ENG', 'OPS' }. An empty set means any key.
+  const teamKeys = (input) => new Set((input || '').toUpperCase().split(/[\s,]+/).filter(Boolean));
+
+  function keysIn(text, re, teams) {
     return [...(text || '').matchAll(re)]
-      .map((m) => `${m[1]}-${m[2]}`.toUpperCase())
-      .filter((key) => !NOT_KEYS.has(key.split('-')[0]));
+      .filter((m) => (teams?.size ? teams.has(m[1].toUpperCase()) : !NOT_KEYS.has(m[1].toUpperCase())))
+      .map((m) => `${m[1]}-${m[2]}`.toUpperCase());
   }
 
-  const titleKeys = (title) => keysIn(title, TITLE_KEY);
-  const branchKeys = (branch) => keysIn(branch, BRANCH_KEY);
+  const titleKeys = (title, teams) => keysIn(title, TITLE_KEY, teams);
+  const branchKeys = (branch, teams) => keysIn(branch, BRANCH_KEY, teams);
 
   // https://linear.app/<workspace>/issue/<KEY>/... -> { workspace, key }
   function parseLinearIssueUrl(href) {
@@ -69,13 +77,28 @@ const prFocus = (() => {
     return /^[\w-]+$/.test(slug) ? slug : '';
   }
 
-  const linearIssueUrl = (workspace, key) => `https://linear.app/${workspace}/issue/${key}`;
+  const linearIssueUrl = ({ workspace, key }) => `https://linear.app/${workspace}/issue/${key}`;
 
-  // Keys for a PR page: title, then head branch, then the first Linear issue link (PR body or Linear's linkback comment).
-  function prPageKeys({ title, branch, linearHref }) {
+  const uniqueByKey = (issues) => issues.filter((issue, i) => issues.findIndex((x) => x.key === issue.key) === i);
+
+  // Linear issues to link from a PR list row: the keys in its title, in the workspace from the option.
+  function rowIssues(title, settings) {
+    const workspace = workspaceSlug(settings.linearWorkspace);
+    if (!workspace) return [];
+    return uniqueByKey(titleKeys(title, teamKeys(settings.linearTeams)).map((key) => ({ workspace, key })));
+  }
+
+  // Linear issues to link from a PR page, at most three: title keys, head-branch keys, then the page's Linear link.
+  // Title and branch keys use the workspace from the option, and the link's workspace only when the option is empty:
+  // a link in the PR body must not redirect them. The linked issue keeps the workspace of its own link.
+  function prPageIssues({ title, branch, linearHref }, settings) {
     const linked = parseLinearIssueUrl(linearHref);
-    const keys = [...titleKeys(title), ...branchKeys(branch), ...(linked ? [linked.key] : [])];
-    return [...new Set(keys)].slice(0, 3);
+    const teams = teamKeys(settings.linearTeams);
+    const workspace = workspaceSlug(settings.linearWorkspace) || linked?.workspace || '';
+    const named = workspace ? [...titleKeys(title, teams), ...branchKeys(branch, teams)] : [];
+    const issues = named.map((key) => ({ workspace, key }));
+    if (linked) issues.push(linked);
+    return uniqueByKey(issues).slice(0, 3);
   }
 
   return {
@@ -85,12 +108,14 @@ const prFocus = (() => {
     noiseReason,
     authorInQuery,
     authorFromRowText,
+    teamKeys,
     titleKeys,
     branchKeys,
     parseLinearIssueUrl,
     workspaceSlug,
     linearIssueUrl,
-    prPageKeys,
+    rowIssues,
+    prPageIssues,
   };
 })();
 

@@ -64,8 +64,15 @@
     </label>
     <p class="error" id="linearWorkspaceError" hidden>Use letters, digits and dashes, or paste a linear.app URL.</p>
     <p class="hint">
-      Needed for Linear buttons on PR list rows. PR pages that already link to a Linear issue use that link's
-      workspace instead.
+      Needed for Linear buttons on PR list rows. On a PR page with no workspace set, the workspace of the page's
+      Linear link is used.
+    </p>
+    <label>
+      Team keys (optional)
+      <input type="text" id="linearTeams" placeholder="ENG, OPS" spellcheck="false" />
+    </label>
+    <p class="hint">
+      Only keys with these prefixes get a button, for example ENG-123. Leave empty to accept any key of that form.
     </p>
 
     <script src="rules.js"></script>

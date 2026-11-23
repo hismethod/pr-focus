@@ -113,6 +113,32 @@ test('Linear keys in branch names', () => {
   assert.deepEqual(rules.branchKeys('dev'), []);
 });
 
+test('versions and work-type prefixes in branch names are not Linear keys', () => {
+  for (const branch of [
+    'renovate/eslint-9.x',
+    'renovate/node-20.x',
+    'dependabot/npm_and_yarn/lodash-4.17.21',
+    'hotfix-3',
+    'release-1',
+    'feature-2-login',
+    'alice/eng-12_fix',
+  ]) {
+    assert.deepEqual(rules.branchKeys(branch), [], branch);
+  }
+});
+
+test('team keys option limits which prefixes count as keys', () => {
+  const teams = rules.teamKeys(' eng, ops2  web');
+  assert.deepEqual([...teams], ['ENG', 'OPS2', 'WEB']);
+  assert.deepEqual(rules.titleKeys('KAFKA-12345: [SPARK-4501][SQL] ENG-7 and GPT-4', teams), ['ENG-7']);
+  assert.deepEqual(rules.branchKeys('alice/ops2-45-fix', teams), ['OPS2-45']);
+  assert.deepEqual(rules.branchKeys('alice/abc-45-fix', teams), []);
+  // Listing a prefix from the built-in deny list turns it into a key.
+  assert.deepEqual(rules.titleKeys('FIX-12 login', rules.teamKeys('fix')), ['FIX-12']);
+  // No team keys: any key of that form.
+  assert.deepEqual(rules.titleKeys('KAFKA-12345 ENG-7', rules.teamKeys('')), ['KAFKA-12345', 'ENG-7']);
+});
+
 test('Linear issue URLs give the workspace and key', () => {
   assert.deepEqual(rules.parseLinearIssueUrl('https://linear.app/acme/issue/ENG-123/fix-login'), {
     workspace: 'acme',
@@ -132,22 +158,57 @@ test('workspace option accepts a slug or a pasted URL, nothing else', () => {
   assert.equal(rules.workspaceSlug('acme/../x'), '');
   assert.equal(rules.workspaceSlug('a b'), '');
   assert.equal(rules.workspaceSlug(''), '');
-  assert.equal(rules.linearIssueUrl('acme', 'ENG-1'), 'https://linear.app/acme/issue/ENG-1');
+  assert.equal(rules.linearIssueUrl({ workspace: 'acme', key: 'ENG-1' }), 'https://linear.app/acme/issue/ENG-1');
 });
 
-test('PR page keys: title, head branch, then the first Linear link, deduplicated', () => {
+const linear = (fields) => ({ ...defaults, ...fields });
+const urls = (issues) => issues.map(rules.linearIssueUrl);
+
+test('list row issues: title keys in the workspace from the option', () => {
+  assert.deepEqual(rules.rowIssues('ENG-1 and ENG-1 again (OPS-2)', linear({ linearWorkspace: 'acme' })), [
+    { workspace: 'acme', key: 'ENG-1' },
+    { workspace: 'acme', key: 'OPS-2' },
+  ]);
+  assert.deepEqual(rules.rowIssues('ENG-1 (OPS-2)', linear({ linearWorkspace: 'acme', linearTeams: 'ops' })), [
+    { workspace: 'acme', key: 'OPS-2' },
+  ]);
+  assert.deepEqual(rules.rowIssues('ENG-1', linear({})), []);
+});
+
+test('PR page issues: title, head branch, then the Linear link, deduplicated, at most three', () => {
+  const settings = linear({ linearWorkspace: 'acme' });
   assert.deepEqual(
-    rules.prPageKeys({
-      title: 'ENG-1 Fix login',
-      branch: 'alice/eng-1-fix-login',
-      linearHref: 'https://linear.app/acme/issue/ENG-2/x',
-    }),
-    ['ENG-1', 'ENG-2'],
+    urls(
+      rules.prPageIssues(
+        { title: 'ENG-1 Fix login', branch: 'alice/eng-1-fix-login', linearHref: 'https://linear.app/acme/issue/ENG-2/x' },
+        settings,
+      ),
+    ),
+    ['https://linear.app/acme/issue/ENG-1', 'https://linear.app/acme/issue/ENG-2'],
   );
-  assert.deepEqual(
-    rules.prPageKeys({ title: 'Fix login', branch: 'main', linearHref: 'https://linear.app/acme/issue/ENG-9/x' }),
-    ['ENG-9'],
-  );
-  assert.deepEqual(rules.prPageKeys({ title: 'Fix login', branch: '', linearHref: '' }), []);
-  assert.equal(rules.prPageKeys({ title: 'A-1 AB-1 AB-2 AB-3 AB-4', branch: '', linearHref: '' }).length, 3);
+  assert.deepEqual(rules.prPageIssues({ title: 'Fix login', branch: '', linearHref: '' }, settings), []);
+  assert.equal(rules.prPageIssues({ title: 'AB-1 AB-2 AB-3 AB-4', branch: '', linearHref: '' }, settings).length, 3);
+});
+
+test('PR page issues: the workspace option wins over a link on the page for title and branch keys', () => {
+  const pr = { title: 'ENG-12 Fix login', branch: 'main', linearHref: 'https://linear.app/vendor/issue/VEN-4/x' };
+  assert.deepEqual(urls(rules.prPageIssues(pr, linear({ linearWorkspace: 'acme' }))), [
+    'https://linear.app/acme/issue/ENG-12',
+    'https://linear.app/vendor/issue/VEN-4',
+  ]);
+  // No workspace option: the page link's workspace is all there is.
+  assert.deepEqual(urls(rules.prPageIssues(pr, linear({}))), [
+    'https://linear.app/vendor/issue/ENG-12',
+    'https://linear.app/vendor/issue/VEN-4',
+  ]);
+  // Neither: no button for the title key.
+  assert.deepEqual(rules.prPageIssues({ ...pr, linearHref: '' }, linear({})), []);
+});
+
+test('PR page issues: the linked issue shows even when team keys leave out its prefix', () => {
+  const pr = { title: 'ENG-12 KAFKA-9', branch: '', linearHref: 'https://linear.app/acme/issue/OPS-3/x' };
+  assert.deepEqual(urls(rules.prPageIssues(pr, linear({ linearWorkspace: 'acme', linearTeams: 'ENG' }))), [
+    'https://linear.app/acme/issue/ENG-12',
+    'https://linear.app/acme/issue/OPS-3',
+  ]);
 });

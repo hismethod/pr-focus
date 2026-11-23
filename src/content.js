@@ -17,12 +17,11 @@
   }
 
   function apply() {
-    const workspace = gh.linearWorkspaceOnPage() || prFocus.workspaceSlug(settings.linearWorkspace);
-    for (const list of gh.lists()) applyList(list, workspace);
-    if (gh.isPrPage()) applyPrPage(workspace);
+    for (const list of gh.lists()) applyList(list);
+    if (gh.isPrPage()) applyPrPage();
   }
 
-  function applyList(list, workspace) {
+  function applyList(list) {
     const viewer = gh.viewer();
     const counts = {};
     let hidden = 0;
@@ -35,15 +34,15 @@
         hidden++;
         counts[reason] = (counts[reason] || 0) + 1;
       }
-      renderLinear(gh.rowTitleAnchor(li), prFocus.titleKeys(pr.title), workspace);
+      renderLinear(gh.rowTitleAnchor(li), prFocus.rowIssues(pr.title, settings));
     }
     list.toggleAttribute('data-pr-focus-show', showHidden);
     renderBar(list, hidden, counts);
   }
 
-  function applyPrPage(workspace) {
+  function applyPrPage() {
     const pr = gh.readPrPage();
-    if (pr) renderLinear(pr.titleAnchor, prFocus.prPageKeys(pr), workspace);
+    if (pr) renderLinear(pr.titleAnchor, prFocus.prPageIssues(pr, settings));
   }
 
   function setText(el, text) {
@@ -79,8 +78,9 @@
     button.setAttribute('aria-pressed', String(showHidden));
   }
 
-  function renderLinear(anchor, keys, workspace) {
-    const id = workspace && keys.length ? `${workspace}:${keys.join(',')}` : '';
+  // issues: [{ workspace, key }]
+  function renderLinear(anchor, issues) {
+    const id = issues.map(({ workspace, key }) => `${workspace}/${key}`).join(',');
     const next = anchor.nextElementSibling;
     const box = next?.classList.contains('pr-focus-linear') ? next : null;
     if ((box?.dataset.id || '') === id) return;
@@ -89,9 +89,10 @@
     const span = document.createElement('span');
     span.className = 'pr-focus-linear';
     span.dataset.id = id;
-    for (const key of keys) {
+    for (const issue of issues) {
+      const { key } = issue;
       const a = document.createElement('a');
-      a.href = prFocus.linearIssueUrl(workspace, key);
+      a.href = prFocus.linearIssueUrl(issue);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.textContent = key;
