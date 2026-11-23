@@ -44,7 +44,7 @@ Stored in `chrome.storage.sync`, so they follow your browser profile. Only the s
 
 - `src/rules.js`: pure rule logic (which rows are noise, Linear key detection). No DOM. Unit-tested.
 - `src/github.js`: **every GitHub DOM selector**, plus the functions that read a PR row or a PR page.
-- `src/content.js`: hides rows, draws the count bar and Linear buttons. Re-applied on DOM changes through a `MutationObserver` (batched to one pass per animation frame).
+- `src/content.js`: hides rows, draws the count bar and Linear buttons. Re-applied on DOM changes through a `MutationObserver` (batched to one pass per animation frame, so a background tab catches up when it is shown).
 - `src/options.html` / `src/options.js`: the popup and options page (same file).
 - `icons/`: `icon.svg` is the source of the extension icon; the 16, 32, 48 and 128 px PNGs are renders of it.
 
@@ -58,11 +58,12 @@ npm test   # node --test, Node 18 or newer
 
 ## Known limits and fragile spots
 
-- **GitHub markup.** GitHub's React UI hashes its CSS class names, so the selectors in `src/github.js` use only `data-testid` / `data-listview-component` / `data-hovercard-type` attributes, octicon class names and `header h1`. If GitHub renames those, rows stop being hidden; update `src/github.js`. Checked against github.com on 2026-11-23.
-- **Inbox author.** `/pulls/inbox` shows no author link, so the author is read from the `owner/repo#123 • author • Updated` text. Bot PRs in the inbox were not available to check.
+- **GitHub markup.** GitHub's React UI hashes its CSS class names, so the selectors in `src/github.js` use only `data-testid` / `data-listview-component` / `data-hovercard-type` attributes, octicon class names and `header h1`. If GitHub renames those, rows stop being hidden; update `src/github.js`. Checked in a Chromium browser against github.com on 2026-11-23: a repository PR list and its second page, `/pulls/inbox`, and PR pages, loaded directly and through in-page navigation.
+- **Inbox author.** `/pulls/inbox` shows no author link, so the author is read from the `owner/repo#123 • author • Updated` text. Checked with bot PRs in the inbox; draft PRs in the inbox were not available to check.
 - **Hidden rows still count toward GitHub's page size.** A page of 25 can show fewer than 25 PRs, and the Open/Closed counts include hidden PRs.
 - **Linear keys** are a pattern (`ABC-123`) with a small deny list (`CVE-`, `UTF-`, `SHA-`, ...). Other look-alikes can produce a button to an issue that does not exist. List rows only see the title. The PR page uses the *first* Linear issue link, which can be a related issue rather than the linked one when the PR body mentions several.
 - The PR page's head branch is read from the second branch link in the header.
+- **Copilot PRs.** A PR opened through GitHub Copilot lists the author as `Copilot`, with no `[bot]` suffix, so the bot rule keeps it.
 
 ## Rules considered and skipped
 
