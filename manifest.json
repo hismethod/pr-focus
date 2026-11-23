@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "PR Focus",
+  "version": "0.1.0",
+  "description": "Hides bot and other noise pull requests on GitHub PR lists, and adds buttons to the linked Linear issues.",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["src/rules.js", "src/github.js", "src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "PR Focus",
+    "default_popup": "src/options.html"
+  },
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": false
+  }
+}

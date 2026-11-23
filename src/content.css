@@ -1,0 +1,55 @@
+/* Noise rows are hidden unless the list is toggled to show them, then they are dimmed. */
+ul:not([data-pr-focus-show]) > [data-pr-focus-noise] {
+  display: none !important;
+}
+[data-pr-focus-show] > [data-pr-focus-noise] {
+  opacity: 0.55;
+}
+
+/* Colors come from GitHub's own theme variables so light and dark mode both work. */
+.pr-focus-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  border-radius: 6px;
+  background: var(--bgColor-muted, #f6f8fa);
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+}
+.pr-focus-bar button {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  border-radius: 6px;
+  background: var(--bgColor-default, #fff);
+  color: var(--fgColor-default, #1f2328);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pr-focus-linear {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.pr-focus-linear a {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #5e6ad2;
+  color: #fff !important;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.pr-focus-linear a::before {
+  content: "↗ ";
+}
+.pr-focus-linear a:hover {
+  background: #4b55b8;
+}
