@@ -23,11 +23,12 @@
   }
 
   function applyList(list, workspace) {
+    const viewer = gh.viewer();
     const counts = {};
     let hidden = 0;
     for (const li of gh.prRows(list)) {
       const pr = gh.readRow(li);
-      const reason = prFocus.noiseReason(pr, settings);
+      const reason = prFocus.noiseReason(pr, settings, viewer);
       if (reason) li.dataset.prFocusNoise = reason;
       else delete li.dataset.prFocusNoise;
       if (reason) {

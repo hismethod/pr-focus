@@ -20,9 +20,12 @@ const prFocus = (() => {
   }
 
   // Why a PR row counts as noise under these settings ('bot' | 'draft' | 'title'), or null to keep it.
-  function noiseReason(pr, settings) {
+  // viewer is the signed-in login. A draft is hidden only when its author is known and is someone else,
+  // so the viewer's own drafts always stay.
+  function noiseReason(pr, settings, viewer) {
     if (settings.hideBots && isBot(pr.author)) return 'bot';
-    if (settings.hideDrafts && pr.draft) return 'draft';
+    const others = pr.author && pr.author.toLowerCase() !== (viewer || '').toLowerCase();
+    if (settings.hideDrafts && pr.draft && others) return 'draft';
     const re = titleRegex(settings.titlePattern);
     if (re && re.test(pr.title || '')) return 'title';
     return null;

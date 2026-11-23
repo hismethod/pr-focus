@@ -9,6 +9,8 @@ const gh = (() => {
     rowTitleLink: 'h3 a[href*="/pull/"]',
     rowAuthor: '[data-testid="author-filter-link"]',
     draftIcon: '.octicon-git-pull-request-draft',
+    // Login of the signed-in user; the tag is there with an empty value when signed out.
+    viewer: 'meta[name="user-login"]',
     // PR page (/owner/repo/pull/123 and its tabs).
     prTitle: 'header h1',
     prBranchLinks: 'header a[href*="/tree/"]',
@@ -17,6 +19,8 @@ const gh = (() => {
   };
 
   const lists = () => document.querySelectorAll(SEL.list);
+
+  const viewer = () => document.querySelector(SEL.viewer)?.content || '';
 
   const prRows = (list) => [...list.children].filter((li) => li.querySelector(SEL.rowTitleLink));
 
@@ -66,5 +70,5 @@ const gh = (() => {
   const linearWorkspaceOnPage = () =>
     prFocus.parseLinearIssueUrl(document.querySelector(SEL.linearIssueLink)?.href)?.workspace || '';
 
-  return { lists, prRows, readRow, rowTitleAnchor, isPrPage, readPrPage, linearWorkspaceOnPage };
+  return { viewer, lists, prRows, readRow, rowTitleAnchor, isPrPage, readPrPage, linearWorkspaceOnPage };
 })();

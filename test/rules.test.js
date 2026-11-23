@@ -59,6 +59,18 @@ test('turning the bot rule off keeps bot PRs', () => {
   assert.equal(rules.noiseReason(pr({ author: 'renovate[bot]' }), { ...defaults, hideBots: false }), null);
 });
 
+test("the viewer's own drafts are never hidden", () => {
+  assert.equal(rules.noiseReason(pr({ draft: true, author: 'alice' }), defaults, 'alice'), null);
+  assert.equal(rules.noiseReason(pr({ draft: true, author: 'Alice' }), defaults, 'alice'), null);
+  assert.equal(rules.noiseReason(pr({ draft: true, author: 'bob' }), defaults, 'alice'), 'draft');
+  // Signed out: everyone else's drafts are still hidden.
+  assert.equal(rules.noiseReason(pr({ draft: true, author: 'bob' }), defaults, ''), 'draft');
+});
+
+test('a draft whose author could not be read is kept', () => {
+  assert.equal(rules.noiseReason(pr({ draft: true, author: '' }), defaults, 'alice'), null);
+});
+
 test('turning the draft rule off keeps draft PRs', () => {
   assert.equal(rules.noiseReason(pr({ draft: true }), { ...defaults, hideDrafts: false }), null);
 });
