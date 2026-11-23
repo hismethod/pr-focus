@@ -1,6 +1,6 @@
 # Store listing
 
-Prepared, not submitted. Where to publish is not decided yet. Field names follow the Chrome Web Store developer dashboard; the Edge Add-ons dashboard asks for the same things.
+Prepared for the Chrome Web Store, not submitted yet. Field names follow its developer dashboard; the Edge Add-ons dashboard asks for the same things.
 
 ## Package
 
