@@ -56,6 +56,7 @@
       <input type="text" id="titlePattern" placeholder="^chore\(deps\)|^bump " spellcheck="false" />
     </label>
     <p class="error" id="titlePatternError" hidden>Not a valid regular expression, so it is ignored.</p>
+    <p class="error" id="titlePatternAll" hidden>This pattern matches every title, so every PR is hidden.</p>
 
     <h2>Linear</h2>
     <label>
@@ -74,6 +75,8 @@
     <p class="hint">
       Only keys with these prefixes get a button, for example ENG-123. Leave empty to accept any key of that form.
     </p>
+
+    <p class="error" id="saveError" role="alert" hidden>Not saved. It is sent again with your next change.</p>
 
     <script src="rules.js"></script>
     <script src="options.js"></script>
