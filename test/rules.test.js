@@ -28,9 +28,9 @@ test('people and look-alike names are not bots', () => {
   }
 });
 
-test('default settings hide bots only', () => {
+test('default settings hide bots and drafts', () => {
   assert.equal(rules.noiseReason(pr({ author: 'dependabot[bot]' }), defaults), 'bot');
-  assert.equal(rules.noiseReason(pr({ draft: true }), defaults), null);
+  assert.equal(rules.noiseReason(pr({ draft: true }), defaults), 'draft');
   assert.equal(rules.noiseReason(pr({ title: 'chore(deps): bump x' }), defaults), null);
   assert.equal(rules.noiseReason(pr(), defaults), null);
 });
@@ -39,10 +39,8 @@ test('turning the bot rule off keeps bot PRs', () => {
   assert.equal(rules.noiseReason(pr({ author: 'renovate[bot]' }), { ...defaults, hideBots: false }), null);
 });
 
-test('draft rule hides drafts when on', () => {
-  const settings = { ...defaults, hideDrafts: true };
-  assert.equal(rules.noiseReason(pr({ draft: true }), settings), 'draft');
-  assert.equal(rules.noiseReason(pr({ draft: false }), settings), null);
+test('turning the draft rule off keeps draft PRs', () => {
+  assert.equal(rules.noiseReason(pr({ draft: true }), { ...defaults, hideDrafts: false }), null);
 });
 
 test('title pattern is a case-insensitive regex', () => {

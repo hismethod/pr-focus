@@ -1,6 +1,6 @@
 // Pure rule logic, no DOM. Loaded by the content script, the options page and the unit tests.
 const prFocus = (() => {
-  const DEFAULTS = { hideBots: true, hideDrafts: false, titlePattern: '', linearWorkspace: '' };
+  const DEFAULTS = { hideBots: true, hideDrafts: true, titlePattern: '', linearWorkspace: '' };
 
   const BOT_LOGINS = ['dependabot', 'dependabot-preview', 'renovate', 'renovate-bot', 'github-actions'];
 

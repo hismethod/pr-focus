@@ -5,10 +5,9 @@ A Chromium extension (Manifest V3) that hides noise pull requests on GitHub's PR
 ## What it does
 
 - **Hides bot PRs** (on by default): authors `dependabot`, `renovate`, `renovate-bot`, `github-actions`, and any author ending in `[bot]` (for example `dependabot[bot]`, `renovate[bot]`).
-- **Optional rules**, off by default:
-  - **Draft PRs.**
-  - **Titles matching a regular expression** (case-insensitive), for example `^chore\(deps\)|^bump `.
-- **Hidden count and toggle**: a bar above the list says how many PRs are hidden and why (`PR Focus: 5 PRs hidden (5 bot)`). Its **Show them** button shows the hidden rows dimmed; **Hide them** hides them again. The choice lasts until the tab reloads.
+- **Hides draft PRs** (on by default).
+- **Optional rule**, off by default: **titles matching a regular expression** (case-insensitive), for example `^chore\(deps\)|^bump `.
+- **Hidden count and toggle**: a bar above the list says how many PRs are hidden and why (`PR Focus: 7 PRs hidden (4 bot, 3 draft)`). Its **Show them** button shows the hidden rows dimmed; **Hide them** hides them again. The choice lasts until the tab reloads.
 - **Linear button**: a `↗ ENG-123` button that opens `https://linear.app/<workspace>/issue/ENG-123`.
   - On **PR list rows** when the title contains a key like `ENG-123`. Branch names and Linear links are not shown on list rows, so only the title is used there. Needs the workspace option.
   - On the **PR page**, next to the title, from the title, the head branch name (Linear's `user/eng-123-some-title` form), and the first `linear.app/<workspace>/issue/<KEY>` link on the page. That link usually comes from the PR body or from Linear's own linkback comment. Up to three buttons.
@@ -27,12 +26,12 @@ After changing the code, click the reload icon on the extension's card and reloa
 
 ## Settings
 
-Stored in `chrome.storage.sync`, so they follow your browser profile.
+Stored in `chrome.storage.sync`, so they follow your browser profile. Only the settings you change are stored; the rest follow the defaults below.
 
 | Setting | Default | |
 | --- | --- | --- |
 | PRs opened by bots | on | |
-| Draft PRs | off | |
+| Draft PRs | on | |
 | Titles matching | empty | Invalid patterns are ignored and flagged in the popup. |
 | Linear workspace | empty | The part after `linear.app/`; a pasted Linear URL also works. |
 
