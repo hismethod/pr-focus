@@ -1,9 +1,10 @@
 {
   "name": "pr-focus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Chromium extension that hides noise pull requests on GitHub PR lists.",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "package": "mkdir -p dist && git archive --format=zip -o dist/pr-focus-$npm_package_version.zip HEAD manifest.json src icons"
   }
 }
