@@ -1,6 +1,6 @@
 /* Noise rows are hidden unless the list is toggled to show them, then they are dimmed.
    A ticked row is never hidden: GitHub's select-all ticks every row, and a bulk action must not reach rows nobody can see. */
-ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkbox"]:checked)) {
+ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkbox"]:checked, [aria-checked="true"])) {
   display: none !important;
 }
 [data-pr-focus-noise] {

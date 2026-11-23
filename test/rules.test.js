@@ -93,6 +93,24 @@ test('the first matching rule names the reason', () => {
   assert.equal(rules.noiseReason(pr({ draft: true, title: 'Bump x' }), all), 'draft');
 });
 
+test('bar text counts hidden rows and says when ticked rows are shown', () => {
+  const counts = { bot: 4, draft: 3 };
+  assert.equal(rules.barText({ counts, selected: 0, showHidden: false }), 'PR Focus: 7 PRs hidden (4 bot, 3 draft)');
+  assert.equal(
+    rules.barText({ counts, selected: 2, showHidden: false }),
+    'PR Focus: 5 PRs hidden, 2 shown because selected (4 bot, 3 draft)',
+  );
+  assert.equal(
+    rules.barText({ counts, selected: 7, showHidden: false }),
+    'PR Focus: 7 PRs shown because selected (4 bot, 3 draft)',
+  );
+  assert.equal(rules.barText({ counts, selected: 2, showHidden: true }), 'PR Focus: 7 PRs shown dimmed (4 bot, 3 draft)');
+  assert.equal(
+    rules.barText({ counts: { title: 1 }, selected: 0, showHidden: false }),
+    'PR Focus: 1 PR hidden (1 title match)',
+  );
+});
+
 test('Linear keys in titles', () => {
   assert.deepEqual(rules.titleKeys('ENG-123 Fix login'), ['ENG-123']);
   assert.deepEqual(rules.titleKeys('feat: sessions (ENG-7, OPS2-45)'), ['ENG-7', 'OPS2-45']);

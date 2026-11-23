@@ -40,6 +40,20 @@ const prFocus = (() => {
   const ROW_AUTHOR = /[\w.-]+\/[\w.-]+\s*#\s*\d+\s*[•·]\s*([^\s•·]+)\s*(?:[•·]|opened\b)/;
   const authorFromRowText = (text) => (ROW_AUTHOR.exec(text || '') || [])[1] || '';
 
+  const REASON_LABEL = { bot: 'bot', draft: 'draft', title: 'title match' };
+
+  // Text of the count bar. counts is { reason: rows }; selected of those rows are ticked and so stay visible.
+  function barText({ counts, selected, showHidden }) {
+    const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+    const prs = (n) => `${n} PR${n === 1 ? '' : 's'}`;
+    let state = `${prs(total)} hidden`;
+    if (showHidden) state = `${prs(total)} shown dimmed`;
+    else if (selected >= total) state = `${prs(total)} shown because selected`;
+    else if (selected) state = `${prs(total - selected)} hidden, ${selected} shown because selected`;
+    const detail = Object.entries(counts).map(([reason, n]) => `${n} ${REASON_LABEL[reason]}`);
+    return `PR Focus: ${state} (${detail.join(', ')})`;
+  }
+
   // Prefixes that look like issue keys but never are. Not used when the team keys option lists the real ones.
   const NOT_KEYS = new Set([
     ...['CVE', 'GHSA', 'HTTP', 'ISO', 'PEP', 'RFC', 'SHA', 'TLS', 'UTF'],
@@ -108,6 +122,7 @@ const prFocus = (() => {
     noiseReason,
     authorInQuery,
     authorFromRowText,
+    barText,
     teamKeys,
     titleKeys,
     branchKeys,

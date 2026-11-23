@@ -4,8 +4,11 @@
   let settings = { ...prFocus.DEFAULTS };
   let showHidden = false;
   let queued = false;
-
-  const REASON_LABEL = { bot: 'bot', draft: 'draft', title: 'title match' };
+  // The bar of each list and the button box of each title, found again wherever the page moves things.
+  const bars = new WeakMap();
+  const boxes = new WeakMap();
+  // What the current pass drew or marked: bars, button boxes and noise rows. Anything else of ours is left over.
+  let drawn = new Set();
 
   function schedule() {
     if (queued) return;
@@ -17,27 +20,38 @@
   }
 
   function apply() {
-    for (const list of gh.lists()) applyList(list);
+    drawn = new Set();
+    // Only PR lists and PR pages are read; on busy pages such as Actions logs a pass is just the two cleanup queries below.
+    if (gh.isListPage()) for (const list of gh.lists()) applyList(list);
     if (gh.isPrPage()) applyPrPage();
+    for (const el of document.querySelectorAll('.pr-focus-bar, .pr-focus-linear')) if (!drawn.has(el)) el.remove();
+    // A row only stays hidden while a pass still finds it to be noise (the page may reuse a row for another item).
+    for (const li of document.querySelectorAll('[data-pr-focus-noise]')) if (!drawn.has(li)) delete li.dataset.prFocusNoise;
   }
 
   function applyList(list) {
     const viewer = gh.viewer();
-    const counts = {};
-    let hidden = 0;
-    for (const li of gh.prRows(list)) {
+    // Every row is read and the bar drawn before any row is hidden, so a failure cannot leave rows hidden without the toggle.
+    const rows = gh.prRows(list).map((li) => {
       const pr = gh.readRow(li);
-      const reason = prFocus.noiseReason(pr, settings, viewer);
-      if (reason) li.dataset.prFocusNoise = reason;
-      else delete li.dataset.prFocusNoise;
+      return { li, pr, reason: prFocus.noiseReason(pr, settings, viewer) };
+    });
+    const counts = {};
+    let selected = 0;
+    for (const { pr, reason } of rows) {
+      if (!reason) continue;
+      counts[reason] = (counts[reason] || 0) + 1;
+      if (pr.ticked) selected++;
+    }
+    renderBar(list, counts, selected);
+    list.toggleAttribute('data-pr-focus-show', showHidden);
+    for (const { li, pr, reason } of rows) {
       if (reason) {
-        hidden++;
-        counts[reason] = (counts[reason] || 0) + 1;
+        li.dataset.prFocusNoise = reason;
+        drawn.add(li);
       }
       renderLinear(gh.rowTitleAnchor(li), prFocus.rowIssues(pr.title, settings));
     }
-    list.toggleAttribute('data-pr-focus-show', showHidden);
-    renderBar(list, hidden, counts);
   }
 
   function applyPrPage() {
@@ -49,12 +63,9 @@
     if (el.textContent !== text) el.textContent = text;
   }
 
-  function renderBar(list, hidden, counts) {
-    let bar = list.previousElementSibling?.classList.contains('pr-focus-bar') ? list.previousElementSibling : null;
-    if (!hidden) {
-      bar?.remove();
-      return;
-    }
+  function renderBar(list, counts, selected) {
+    if (!Object.keys(counts).length) return;
+    let bar = bars.get(list);
     if (!bar) {
       bar = document.createElement('div');
       bar.className = 'pr-focus-bar';
@@ -67,44 +78,46 @@
         schedule();
       });
       bar.append(text, button);
-      list.before(bar);
+      bars.set(list, bar);
     }
+    if (bar.nextElementSibling !== list) list.before(bar);
+    drawn.add(bar);
     const [text, button] = bar.children;
-    const detail = Object.entries(counts)
-      .map(([reason, n]) => `${n} ${REASON_LABEL[reason]}`)
-      .join(', ');
-    setText(text, `PR Focus: ${hidden} PR${hidden === 1 ? '' : 's'} ${showHidden ? 'shown dimmed' : 'hidden'} (${detail})`);
+    setText(text, prFocus.barText({ counts, selected, showHidden }));
     setText(button, showHidden ? 'Hide them' : 'Show them');
-    button.setAttribute('aria-pressed', String(showHidden));
   }
 
   // issues: [{ workspace, key }]
   function renderLinear(anchor, issues) {
+    if (!issues.length) return;
     const id = issues.map(({ workspace, key }) => `${workspace}/${key}`).join(',');
-    const next = anchor.nextElementSibling;
-    const box = next?.classList.contains('pr-focus-linear') ? next : null;
-    if ((box?.dataset.id || '') === id) return;
-    box?.remove();
-    if (!id) return;
-    const span = document.createElement('span');
-    span.className = 'pr-focus-linear';
-    span.dataset.id = id;
-    for (const issue of issues) {
-      const { key } = issue;
-      const a = document.createElement('a');
-      a.href = prFocus.linearIssueUrl(issue);
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.textContent = key;
-      a.title = `Open ${key} in Linear`;
-      a.addEventListener('click', (e) => e.stopPropagation());
-      span.append(a);
+    let box = boxes.get(anchor);
+    if (box?.dataset.id !== id) {
+      box = document.createElement('span');
+      box.className = 'pr-focus-linear';
+      box.dataset.id = id;
+      for (const issue of issues) {
+        const a = document.createElement('a');
+        a.href = prFocus.linearIssueUrl(issue);
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = issue.key;
+        a.title = `Open ${issue.key} in Linear`;
+        a.addEventListener('click', (e) => e.stopPropagation());
+        box.append(a);
+      }
+      boxes.set(anchor, box);
     }
-    anchor.after(span);
+    if (box.previousElementSibling !== anchor) anchor.after(box);
+    drawn.add(box);
   }
 
   chrome.storage.sync.get(prFocus.DEFAULTS, (stored) => {
-    settings = stored;
+    settings = { ...settings, ...stored };
+    // Watching starts once the settings are known, so nothing is hidden by a default the user turned off.
+    new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+    // Ticking a row changes no child list, but the bar has to say that the row is shown.
+    document.addEventListener('change', schedule, true);
     schedule();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -112,5 +125,4 @@
     for (const [key, { newValue }] of Object.entries(changes)) settings[key] = newValue ?? prFocus.DEFAULTS[key];
     schedule();
   });
-  new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
 })();

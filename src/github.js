@@ -9,6 +9,8 @@ const gh = (() => {
     rowTitleLink: 'h3 a[href*="/pull/"]',
     rowAuthor: '[data-testid="author-filter-link"]',
     draftIcon: '.octicon-git-pull-request-draft',
+    // A ticked row checkbox, native or ARIA. Keep in step with the :has() rule in content.css.
+    rowTicked: 'input[type="checkbox"]:checked, [aria-checked="true"]',
     // Login of the signed-in user; the tag is there with an empty value when signed out.
     viewer: 'meta[name="user-login"]',
     // PR page (/owner/repo/pull/123 and its tabs).
@@ -47,11 +49,15 @@ const gh = (() => {
       title: li.querySelector(SEL.rowTitleLink).textContent.trim(),
       author: rowAuthor(li),
       draft: !!li.querySelector(SEL.draftIcon),
+      ticked: !!li.querySelector(SEL.rowTicked),
     };
   }
 
   // Element the row's Linear buttons go after.
   const rowTitleAnchor = (li) => li.querySelector(SEL.rowTitleLink).closest('h3');
+
+  // PR lists: the dashboard (/pulls and its views) and a repository's /pulls.
+  const isListPage = () => /^\/pulls(\/|$)|^\/[^/]+\/[^/]+\/pulls(\/|$)/.test(location.pathname);
 
   const isPrPage = () => /^\/[^/]+\/[^/]+\/pull\/\d+/.test(location.pathname);
 
@@ -71,5 +77,5 @@ const gh = (() => {
     };
   }
 
-  return { viewer, lists, prRows, readRow, rowTitleAnchor, isPrPage, readPrPage };
+  return { viewer, lists, prRows, readRow, rowTitleAnchor, isListPage, isPrPage, readPrPage };
 })();
