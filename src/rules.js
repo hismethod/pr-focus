@@ -28,6 +28,15 @@ const prFocus = (() => {
     return null;
   }
 
+  // Login in an author link's search query: "is:pr state:open author:dependabot[bot]" -> "dependabot[bot]".
+  const authorInQuery = (query) => (/(?:^|\s)author:(\S+)/.exec(query || '') || [])[1] || '';
+
+  // Author of a dashboard row that has no author link, from the row's text outside the title:
+  // "owner/repo#123 • author • Updated ..." (inbox) or "owner/repo#123 · author opened ..." (search).
+  // The owner/repo#123 part is required, so a title like "Fix #1 • dependabot • typo" cannot name the author.
+  const ROW_AUTHOR = /[\w.-]+\/[\w.-]+\s*#\s*\d+\s*[•·]\s*([^\s•·]+)\s*(?:[•·]|opened\b)/;
+  const authorFromRowText = (text) => (ROW_AUTHOR.exec(text || '') || [])[1] || '';
+
   // shortcut: prefixes that look like issue keys but never are; add a "team keys" option if false positives remain.
   const NOT_KEYS = new Set(['CVE', 'GHSA', 'HTTP', 'ISO', 'PEP', 'RFC', 'SHA', 'TLS', 'UTF']);
   // Titles: upper-case keys like ENG-123. Branches: Linear's own lower-case form, at the start of a path segment.
@@ -71,6 +80,8 @@ const prFocus = (() => {
     isBot,
     titleRegex,
     noiseReason,
+    authorInQuery,
+    authorFromRowText,
     titleKeys,
     branchKeys,
     parseLinearIssueUrl,

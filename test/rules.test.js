@@ -28,6 +28,26 @@ test('people and look-alike names are not bots', () => {
   }
 });
 
+test('author from an author link query', () => {
+  assert.equal(rules.authorInQuery('is:pr state:open author:dependabot[bot]'), 'dependabot[bot]');
+  assert.equal(rules.authorInQuery('author:alice is:open'), 'alice');
+  assert.equal(rules.authorInQuery('is:pr coauthor:alice'), '');
+  assert.equal(rules.authorInQuery(null), '');
+});
+
+test('author from dashboard row text', () => {
+  assert.equal(rules.authorFromRowText('acme/web#123 • dependabot[bot] • Updated Nov 4'), 'dependabot[bot]');
+  assert.equal(rules.authorFromRowText('acme/web#123·alice opened Nov 4, 2026·2 tasks'), 'alice');
+  assert.equal(rules.authorFromRowText('acme-co/my.repo #7 · bob opened yesterday'), 'bob');
+  assert.equal(rules.authorFromRowText(''), '');
+});
+
+test('a PR title cannot name the row author', () => {
+  // The reader passes the row text without the title; even with it, the owner/repo#123 form is required.
+  assert.equal(rules.authorFromRowText('Fix #1 • dependabot • typo'), '');
+  assert.equal(rules.authorFromRowText('Fix #1 • dependabot • typo acme/web#9 • alice • Updated'), 'alice');
+});
+
 test('default settings hide bots and drafts', () => {
   assert.equal(rules.noiseReason(pr({ author: 'dependabot[bot]' }), defaults), 'bot');
   assert.equal(rules.noiseReason(pr({ draft: true }), defaults), 'draft');
