@@ -11,7 +11,8 @@ const gh = (() => {
     // PR page (/owner/repo/pull/123 and its tabs).
     prTitle: 'header h1',
     prBranchLinks: 'header a[href*="/tree/"]',
-    linearIssueLink: 'a[href^="https://linear.app/"][href*="/issue/"]',
+    // Not our own buttons: they are Linear issue links too, and reading them back would pin a stale workspace.
+    linearIssueLink: 'a[href^="https://linear.app/"][href*="/issue/"]:not(.pr-focus-linear a)',
   };
 
   const lists = () => document.querySelectorAll(SEL.list);
