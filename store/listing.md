@@ -1,6 +1,6 @@
 # Store listing
 
-Version 0.2.0 was submitted to the Chrome Web Store. The text below is for 0.3.0, which is not uploaded. Field names follow the store's developer dashboard; the Edge Add-ons dashboard asks for the same things.
+Version 0.3.0 was submitted to the Chrome Web Store on 2026-11-24 and is pending review. The text below is what was submitted. Field names follow the store's developer dashboard; the Edge Add-ons dashboard asks for the same things.
 
 ## Package
 
@@ -19,32 +19,17 @@ Hides bot and draft PRs on GitHub PR lists, shows a PR's diff in sections with t
 **Detailed description**
 
 ```
-PR Focus declutters GitHub pull requests: the list shows the pull requests that need a person, and a pull request's diff shows the code before the tests and the noise.
+Faster PR review on GitHub: hides Dependabot, bots and drafts from pull request lists, shows the diff with the code first and tests and lockfiles in their own sections, and links PRs to Linear.
 
-On pull request lists
-- Hides pull requests opened by bots such as Dependabot, Renovate and github-actions, and any author ending in [bot].
-- Hides other people's draft pull requests. Your own drafts always stay.
-- Optionally hides pull requests whose title matches a regular expression you set.
-- Shows how many pull requests are hidden and why, with a button to show them dimmed and to hide them again.
+- Hides pull requests from Dependabot, Renovate and other bots, and other people's drafts.
+- Shows each diff in sections: code first, then tests, lockfiles and generated files.
+- Groups the changed-files tree the same way. One click switches back to GitHub's view.
+- Adds a button that opens a pull request's Linear issue.
 
-In a pull request's changed files
-- Counts the tests, lockfiles and generated files in the diff, with their added and removed lines.
-- Sections, the default: shows the code first, then a section each for tests, lockfiles and generated files. A heading shows each section's size and folds it away.
-- The file list on the left is grouped into the same sections. Each section is a tree like GitHub's own: folders open and close, each file shows whether it was added, changed, deleted or renamed and how many lines changed, and the file you are at is marked.
-- All: GitHub's own view. Your choice is remembered, and Alt+Shift+F switches it.
-- You choose what counts: switch each kind off, or add your own file patterns such as *.md or docs/.
-
-Linear
-- Adds a button next to a pull request that opens its Linear issue when the title, the branch or a Linear link names one, for example ENG-123. Set your Linear workspace in the options to use it.
-
-Where it works
-Repository pull request lists, the pull request dashboard at github.com/pulls, and pull request pages with their changed files.
-
-Privacy
-No account, no token, no network requests, no analytics. PR Focus only reads what the GitHub page already shows, and stores your settings in Chrome's sync storage. Linear buttons are plain links.
-
-PR Focus is not affiliated with GitHub or Linear.
+No token, no account, no data collected. Not affiliated with GitHub or Linear.
 ```
+
+The description is 597 characters. Keep it short: one sentence with the words people search for, one bullet per feature, one line on privacy.
 
 **Category**
 
@@ -75,17 +60,17 @@ No
 | Asset | File | Status |
 | --- | --- | --- |
 | Store icon, 128x128 | `icons/icon-128.png` | Ready. 96 px artwork with 16 px of transparent padding. |
-| Screenshot 1, 1280x800 | `store/screenshots/1-noise-hidden.png` | Ready. Bot and draft PRs hidden, with the count bar. |
-| Screenshot 2, 1280x800 | `store/screenshots/2-shown-dimmed.png` | Ready. The same list after **Show them**. |
-| Screenshot 3, 1280x800 | `store/screenshots/3-diff-sections.png` | Ready. A PR's changed files in **Sections**: the bar, the file tree in sections with the four kinds of change, and the code first. |
-| Screenshot 4, 1280x800 | `store/screenshots/4-diff-section-heading.png` | Ready. The same PR further down: the `Tests` heading and the test files. |
-| Screenshot 5, 1280x800 | `store/screenshots/5-diff-code-folded.png` | Ready. The same PR with `Code` folded, so the tests come first. |
+| Screenshot 1, 1280x800 | `store/screenshots/1-before-after.png` | Ready. Before and after: GitHub's own changed files with the tests first, next to **Sections** with the code first and the file tree in sections. |
+| Screenshot 2, 1280x800 | `store/screenshots/2-diff-sections.png` | Ready. A PR's changed files in **Sections**: the bar, the file tree in sections with the four kinds of change, and the code first. |
+| Screenshot 3, 1280x800 | `store/screenshots/3-noise-hidden.png` | Ready. Bot and draft PRs hidden, with the count bar. |
+| Screenshot 4, 1280x800 | `store/screenshots/4-diff-code-folded.png` | Ready. The same PR as 2 with `Code` folded, so the tests come first. |
+| Screenshot 5, 1280x800 | `store/screenshots/5-shown-dimmed.png` | Ready. The same list as 3 after **Show them**. |
 | Small promo tile, 440x280 | | Optional, not made. |
 | Marquee promo tile, 1400x560 | | Optional, not made. |
 
 The icon is an original drawing of a cat head crossed by one highlighted row, the pull request in focus. It is not GitHub's Octocat or Invertocat mark and does not reuse their shapes; keep it that way if the icon changes.
 
-Screenshots 1 and 2 are of `github.com/dependabot/dependabot-core/pulls`, and 3 to 5 of `github.com/withastro/astro/pull/9647`, which adds, changes, deletes and renames files. Both are public repositories, scrolled so the signed-in account in GitHub's header is out of view. Take new screenshots from public repositories only. The store shows at most five screenshots.
+Screenshots 1, 2 and 4 are of `github.com/withastro/astro/pull/9647`, which adds, changes, deletes and renames files, and 3 and 5 of `github.com/dependabot/dependabot-core/pulls`. Both are public repositories, scrolled so the signed-in account in GitHub's header is out of view. Screenshot 1 puts two captures of the same PR side by side, scaled to 80%: **All** with the bar hidden, and **Sections**. Take new screenshots from public repositories only. The store shows at most five screenshots, ordered by impact: the before and after first.
 
 There is no screenshot of the Linear button yet. It needs a public repository whose pull request titles carry Linear keys.
 
@@ -154,8 +139,8 @@ No account, no network requests, no remote code.
 
 The store limits this field to 500 characters. The text above is 487.
 
-## Before submitting
+## Next version
 
-- `manifest.json` and `package.json` are at 0.3.0. Run `npm run package` after the last commit and upload `dist/pr-focus-0.3.0.zip` as a new version of the existing item.
-- Replace the summary, the detailed description, the permission justifications and the test instructions with the text above, and add screenshots 3 to 5.
+- Bump `manifest.json` and `package.json`, run `npm run package` after the last commit, and upload the zip as a new version of the existing item.
+- Copy any changed text above into the dashboard, then save the draft before submitting.
 - Optional: a Linear button screenshot from a public repository, and the promo tiles.
