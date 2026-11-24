@@ -19,13 +19,20 @@ A Chromium extension (Manifest V3) that hides noise pull requests on GitHub's PR
 
 ### In a PR's changed files
 
-A bar above the changed files counts the tests and noise in the diff and offers three ways to show them. The choice is remembered for every PR, and **Alt+Shift+F** steps through it.
+A bar above the changed files counts the tests and noise in the diff and offers two ways to show the files. The choice is remembered for every PR, and **Alt+Shift+F** switches it.
 
 | Mode | What you see | Bar text |
 | --- | --- | --- |
 | **All** (default) | GitHub's own view. | `PR Focus: tests & noise in 5 of 10 files (4 tests, 1 lockfile) · +291 −97` |
-| **Sections** | The code first, then a section for each kind of noise. Each heading shows the file count and line counts (`Tests · 4 files · +98 −7`) and folds its files away when clicked. | `5 files in sections below (4 tests, 1 lockfile) · +291 −97 · 5 files of code first, +26 −17` |
-| **Hide noise** | Only the code. Noise files and their file tree entries are hidden. | `5 files hidden (4 tests, 1 lockfile) · +291 −97 · 5 files left, +26 −17` |
+| **Sections** | The code first, then a section for each kind of noise, in the diff and in the file list on the left. | `5 files in sections below (4 tests, 1 lockfile) · +291 −97 · 5 files of code first, +26 −17` |
+
+In **Sections**:
+
+- **The diff** has a heading above each section with its file count and line counts (`Code · 5 files · +26 −17`, `Tests · 4 files · +98 −7`). The sections come in the order Code, Tests, Lockfiles, Generated, Custom.
+- **The file list on the left** is PR Focus's own list in the place of GitHub's file tree, with the same sections and headings. Inside a section the files are a folder tree like GitHub's: a chain of folders with nothing else in them is one row (`packages/vite/src/node/__tests__`). Each file shows its added and removed lines. A click goes to the file through GitHub's own link, so the page moves as it does from GitHub's tree.
+- **A heading folds its section** in both places at once. Folding Code brings the tests to the top.
+- **GitHub's filter still works.** The filter field and its options take files out of the page, and the sections and the list follow.
+- **Viewed files** are dimmed and ticked in the list.
 
 Four kinds of file count as noise. Each built-in kind can be switched off in the options.
 
@@ -35,8 +42,6 @@ Four kinds of file count as noise. Each built-in kind can be switched off in the
 - **Custom**: your own globs, one per line. They read like `.gitignore` lines: `*` stays inside a folder, `**` crosses folders, a glob without a slash matches at any depth (`*.md`), a glob with a slash starts at the repository root (`src/legacy/**`), and a folder covers everything in it (`docs/`).
 
 A file belongs to the first kind it matches, in the order above. Switching a kind off shows its files even when GitHub marks them as generated.
-
-The file tree follows along. In **Hide noise** the tree entries of noise files go too, and so does a folder that holds nothing else. In **Sections** they are dimmed where they are, because the tree is nested by folder and cannot be regrouped by kind. A folded section hides its tree entries.
 
 ### Pages covered
 
@@ -60,7 +65,7 @@ Stored in `chrome.storage.sync`, so they follow your browser profile. Only the s
 | PRs opened by bots | on | |
 | Draft PRs | on | Never your own drafts. |
 | Titles matching | empty | Invalid patterns are ignored and flagged. A pattern that matches every title is flagged too. |
-| Tests & noise in a PR's changed files | All | All, Sections or Hide noise. The same choice as the buttons above the changed files. |
+| Tests & noise in a PR's changed files | All | All or Sections. The same choice as the buttons above the changed files. |
 | Tests | on | |
 | Lockfiles | on | |
 | Generated files | on | Includes files GitHub marks as generated. |
@@ -78,11 +83,10 @@ Stored in `chrome.storage.sync`, so they follow your browser profile. Only the s
 
 - `src/rules.js`: pure rule logic (which rows and files are noise, globs, author parsing, Linear keys, bar text). No DOM. Unit-tested.
 - `src/github.js`: **every GitHub DOM selector**, plus the functions that read a PR row, a PR page, the changed files and the file tree.
-- `src/content.js`: hides rows, marks changed files, draws the bars, section headings and Linear buttons. Re-applied on DOM changes through a `MutationObserver` (batched to one pass per animation frame, so a background tab catches up when it is shown). Each pass removes any bar, heading, button or hidden mark it did not confirm, so a failed read shows rows instead of hiding them.
-- `src/content.css`: the rules that hide and move things. For changed files, `content.js` only marks each file with its kind. The CSS hides or reorders marked files only while the bar (or the section's heading) is on the page, so if the bar cannot be drawn, every file shows in GitHub's order.
-- **Sections does not move any element.** GitHub's list of files is a flex column, so CSS `order` puts the code first and each kind below its heading. The headings are the only elements added to the list. React keeps rendering its own children in its own order, and lazily loaded diffs keep loading.
-- `src/options.html` / `src/options.js`: the popup and options page (same file).
-- `icons/`: `icon.svg` is the source of the extension icon, a cat head crossed by one highlighted row (an original drawing, not GitHub's mark). The 16, 32, 48 and 128 px PNGs are renders of it. The 128 px one is 96 px artwork with 16 px of transparent padding, as the Chrome Web Store asks. `design/icon-candidates/` keeps the three candidates that were compared; the icon is `b-cat-row.svg`.
+- `src/content.js`: hides rows, marks changed files, draws the bars, section headings, the sectioned file list and Linear buttons. Re-applied on DOM changes through a `MutationObserver` (batched to one pass per animation frame, so a background tab catches up when it is shown). Each pass removes any bar, heading, list, button or hidden mark it did not confirm, so a failed read shows rows instead of hiding them.
+- `src/content.css`: the rules that hide and move things. For changed files, `content.js` only marks each file with its kind. The CSS reorders marked files, folds a section and hides GitHub's file tree only while the bar, the section's heading or our own file list is on the page. If one of them cannot be drawn, the page is GitHub's again.
+- **Sections does not move any of GitHub's elements.** GitHub's list of files is a flex column, so CSS `order` puts the code first and each kind below its heading. The headings are the only elements added to that list. React keeps rendering its own children in its own order, and lazily loaded diffs keep loading.
+- **GitHub's file tree is hidden, not changed.** Our list is inserted right before it, and one CSS rule hides whatever follows our list. The list is built from the file headers GitHub has on the page (they are all there before the diffs load) plus the files only the tree lists.
 
 No build step and no dependencies.
 
@@ -110,9 +114,10 @@ Check by hand before each release, with the extension loaded:
 4. A PR page with a Linear link: the Linear button sits next to the title.
 5. The same public list signed out: turn on **Allow in Incognito** on the extension's details page and open the list in an incognito window. Rows are still hidden.
 6. A repository where you can tick rows: select all, and the bar says the hidden rows are shown because selected.
-7. The changed files of a PR with tests and a lockfile, for example `github.com/vitejs/vite/pull/24039/files`: the bar counts them. **Sections** puts the code first with a `Tests` and a `Lockfiles` heading below, and a heading folds its files. **Hide noise** hides them in the diff and the file tree. **All** brings everything back.
-8. On that PR, go to the Commits tab and back to Files changed through GitHub's own tabs: the bar and the mode carry over. Open another PR: the mode is the same.
-9. The same PR signed out (the older files view): the three modes work there too.
+7. The changed files of a PR with tests and a lockfile, for example `github.com/vitejs/vite/pull/24039/files`: the bar counts them. **Sections** puts the code first with `Code`, `Tests` and `Lockfiles` headings, and the file list on the left shows the same three sections in place of GitHub's tree. **All** brings GitHub's view and tree back.
+8. In Sections: click a file in the list and the page goes to it. Fold `Code` in the list and the code folds in the diff too. Type in GitHub's filter field and both follow.
+9. On that PR, go to the Commits tab and back to Files changed through GitHub's own tabs: the bar and the mode carry over. Open another PR: the mode is the same.
+10. The same PR signed out (the older files view): Sections works there too.
 
 When you load the unpacked folder for development, switch off any other copy of PR Focus first (the Web Store one). Two copies remove each other's bars.
 
@@ -122,11 +127,13 @@ When you load the unpacked folder for development, switch off any other copy of 
 - **Dashboard authors.** `/pulls/inbox` and `/pulls/search` show no author link, so the author is read from the row text (`owner/repo#123 • author • Updated`, `owner/repo#123 · author opened`). If GitHub changes that line, bot PRs stop being hidden there and drafts are shown.
 - **Changed files markup.** Files are read from GitHub's file headers: the path, the `Lines changed: 19 additions & 2 deletions` text for screen readers, and the diff anchor that ties a file to its tree entry. The newer view is found through `data-testid="progressive-diffs-list"`, the older one through `#files .file`. If GitHub renames those, the bar does not appear and every file shows. Checked on 2026-11-24, signed in (newer view, split layout) and signed out (older view, unified layout).
 - **Sections depends on GitHub's list being a flex column.** If GitHub lays the list out another way, files stay in GitHub's order and the headings gather at the top. In the older view the CSS flattens GitHub's batch containers (`.js-diff-progressive-container`, `copilot-diff-entry`) to get one column.
-- **Sections changes what you see, not GitHub's order.** GitHub's own next and previous file keys and the tab order follow GitHub's order, so they jump between sections.
+- **Our file list depends on where GitHub's tree is.** It is found through `ul[aria-label="File Tree"]`. When GitHub's tree is not on the page (you closed the file tree panel), there is no list, and the diff is still in sections.
+- **The list is simpler than GitHub's tree.** Its folders do not fold, it has no file type icons and no marker for the file you are at, and it is not a keyboard tree: Tab moves through the files. All shows GitHub's tree again.
+- **Sections changes what you see, not GitHub's order.** GitHub's own next and previous file keys and the tab order in the diff follow GitHub's order, so they jump between sections.
 - **Folded sections are not remembered.** They open again when the tab reloads. The mode is remembered.
+- **Viewed is read from the newer view only.** The older view's Viewed checkbox is not read. Viewed state was checked by setting the button's state in the page, not by marking a real file as viewed.
 - **Counts cover the files GitHub has put on the page.** The newer view lists every file up front. The older view adds files in batches while you scroll, so its counts grow.
 - **Generated files are known while GitHub shows its note.** GitHub marks a generated file by showing "Some generated files are not rendered by default" in place of the diff. After you load that diff the note is gone, and the file counts as generated only if a glob names it.
-- **A link to a hidden file does not show it.** In Hide noise, a link that points at a test file lands on a page where that file is hidden. The bar says how many files are hidden.
 - **Alt+Shift+F** was checked on macOS against GitHub's own shortcut list (GitHub uses Option+Shift+R, not F). It was not checked on Windows or Linux. It does nothing while you type in a field.
 - **Hidden rows still count toward GitHub's page size.** A page of 25 can show fewer than 25 PRs, and the Open/Closed counts include hidden PRs.
 - **Linear keys** are a pattern (`ABC-123`) with a small deny list (`CVE-`, `UTF-`, `SHA-`, `FIX-`, `RELEASE-`, ...). Without team keys, other look-alikes can produce a button to an issue that does not exist. List rows only see the title.
@@ -136,7 +143,8 @@ When you load the unpacked folder for development, switch off any other copy of 
 ## Rules considered and skipped
 
 - **A `spec/` folder as tests**: it holds RSpec tests in Ruby projects and API specifications elsewhere. `*_spec.rb` is covered; add `spec/` as a custom glob if you want the folder.
-- **Regrouping the file tree by kind**: the tree is nested by folder, so it would have to be rebuilt. Noise entries are dimmed in place.
+- **Regrouping GitHub's own file tree**: its items are nested by folder and belong to React, so moving them is unsafe. Sections hides the tree and draws its own list instead.
+- **A Hide noise mode** that hid the noise files altogether: removed before 0.3.0 was released. Folding a section does the same for one kind at a time.
 
 - **Labels** (for example `dependencies`): labels are not rendered in GitHub's compact list density, so the rule would silently stop working there.
 - **Extra author list** (your own bot accounts without a `[bot]` suffix, or Copilot): easy to add later; for now a title pattern covers most of them.

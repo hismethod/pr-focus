@@ -12,9 +12,9 @@ Version 0.2.0 was submitted to the Chrome Web Store. The text below is for 0.3.0
 
 PR Focus
 
-**Summary** (the manifest `description`, 123 of 132 characters)
+**Summary** (the manifest `description`, 126 of 132 characters)
 
-Hides bot and draft PRs on GitHub PR lists, sorts out tests and noise files in a PR's diff, and links PRs to Linear issues.
+Hides bot and draft PRs on GitHub PR lists, shows a PR's diff in sections with the code first, and links PRs to Linear issues.
 
 **Detailed description**
 
@@ -29,9 +29,9 @@ On pull request lists
 
 In a pull request's changed files
 - Counts the tests, lockfiles and generated files in the diff, with their added and removed lines.
-- Sections: shows the code first, then a section each for tests, lockfiles and generated files. A section's heading shows its size and folds it away.
-- Hide noise: hides those files in the diff and in the file tree, and says how many files and lines are left.
-- All: GitHub's own view. This is the default. Your choice is remembered, and Alt+Shift+F steps through the three.
+- Sections: shows the code first, then a section each for tests, lockfiles and generated files. A heading shows each section's size and folds it away.
+- The file list on the left is grouped into the same sections, with each file's added and removed lines. A click goes to the file.
+- All: GitHub's own view. This is the default. Your choice is remembered, and Alt+Shift+F switches it.
 - You choose what counts: switch each kind off, or add your own file patterns such as *.md or docs/.
 
 Linear
@@ -77,9 +77,9 @@ No
 | Store icon, 128x128 | `icons/icon-128.png` | Ready. 96 px artwork with 16 px of transparent padding. |
 | Screenshot 1, 1280x800 | `store/screenshots/1-noise-hidden.png` | Ready. Bot and draft PRs hidden, with the count bar. |
 | Screenshot 2, 1280x800 | `store/screenshots/2-shown-dimmed.png` | Ready. The same list after **Show them**. |
-| Screenshot 3, 1280x800 | `store/screenshots/3-diff-sections.png` | Ready. A PR's changed files in **Sections**: the bar and the code first. |
+| Screenshot 3, 1280x800 | `store/screenshots/3-diff-sections.png` | Ready. A PR's changed files in **Sections**: the bar, the sectioned file list and the code first. |
 | Screenshot 4, 1280x800 | `store/screenshots/4-diff-section-heading.png` | Ready. The same PR further down: the `Tests` heading and the test files. |
-| Screenshot 5, 1280x800 | `store/screenshots/5-diff-noise-hidden.png` | Ready. The same PR in **Hide noise**. |
+| Screenshot 5, 1280x800 | `store/screenshots/5-diff-code-folded.png` | Ready. The same PR with `Code` folded, so the tests come first. |
 | Small promo tile, 440x280 | | Optional, not made. |
 | Marquee promo tile, 1400x560 | | Optional, not made. |
 
@@ -93,7 +93,7 @@ There is no screenshot of the Linear button yet. It needs a public repository wh
 
 **Single purpose**
 
-Declutters GitHub pull requests: hides noise pull requests on lists, sorts tests and noise files out of a pull request's diff, and links each pull request to its Linear issue.
+Declutters GitHub pull requests: hides noise pull requests on lists, shows a pull request's changed files in sections with the code first, and links each pull request to its Linear issue.
 
 **Permission justification: storage**
 
@@ -101,7 +101,7 @@ Saves the user's settings: which pull requests to hide, a title pattern, how tes
 
 **Permission justification: host permission (content script on https://github.com/*)**
 
-Reads pull request list rows, pull request page headers and the file names of a pull request's changed files on github.com, to hide noise pull requests, to hide or regroup tests and noise files, and to add links to Linear issues. It is declared for all github.com pages because GitHub moves between pages without reloading, so a script limited to pull request URLs would not be there when the user navigates to one. On other pages it reads nothing.
+Reads pull request list rows, pull request page headers and the file names of a pull request's changed files on github.com, to hide noise pull requests, to group the changed files into sections, and to add links to Linear issues. It is declared for all github.com pages because GitHub moves between pages without reloading, so a script limited to pull request URLs would not be there when the user navigates to one. On other pages it reads nothing.
 
 **Remote code**
 
@@ -109,7 +109,7 @@ No, I am not using remote code. All code ships in the package. The extension mak
 
 **Data usage**
 
-The extension collects nothing. None of the data types in the form apply: no personally identifiable information, health, financial, authentication, personal communications, location, web history, user activity or website content is collected or transmitted. The content script reads pull request rows and changed file names inside the page to decide what to hide, and that information never leaves the browser.
+The extension collects nothing. None of the data types in the form apply: no personally identifiable information, health, financial, authentication, personal communications, location, web history, user activity or website content is collected or transmitted. The content script reads pull request rows and changed file names inside the page to decide what to hide and how to group the files, and that information never leaves the browser.
 
 All three certifications apply:
 
@@ -147,12 +147,12 @@ The tab is meant for extensions that need credentials. PR Focus needs none, so t
 ```
 1. Sign in to GitHub. (It also works signed out, on public repositories.)
 2. Open https://github.com/dependabot/dependabot-core/pulls. Bot and draft pull requests are hidden. A bar above the list says how many.
-3. Open https://github.com/vitejs/vite/pull/24039/files. A bar above the files counts tests and lockfiles. "Sections" moves them below the code. "Hide noise" hides them. "All" restores GitHub's view.
+3. Open https://github.com/vitejs/vite/pull/24039/files. A bar above the files counts tests and lockfiles. "Sections" groups the diff and the file list by kind. "All" restores GitHub's view.
 4. Settings are in the toolbar popup.
 No account, no network requests, no remote code.
 ```
 
-The store limits this field to 500 characters. The text above is 497.
+The store limits this field to 500 characters. The text above is 488.
 
 ## Before submitting
 
