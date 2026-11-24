@@ -148,14 +148,14 @@ html:has([data-pr-focus-section="custom"][data-pr-focus-collapsed]) [data-pr-foc
 .pr-focus-files-deleted {
   color: var(--fgColor-danger, #d1242f);
 }
-/* A file's icon says how the file changed. It is GitHub's own icon. Added is green and deleted red, as GitHub
-   draws them. A changed file is amber and a renamed one gray, as in GitHub's older tree: its React tree has those
-   two the other way round, gray for the change and amber for the rename. */
+/* A file's icon says how the file changed, in the colors of GitHub's React tree: added green, changed gray,
+   deleted red, renamed amber. A row copied from that tree already has them. A plain row carries the icon of
+   GitHub's older tree, which has changed amber and renamed gray, so these two rules put it in the same colors. */
 .pr-focus-files [data-pr-focus-status="modified"] > div svg {
-  color: var(--fgColor-attention, #9a6700) !important;
+  color: var(--fgColor-muted, #59636e) !important;
 }
 .pr-focus-files [data-pr-focus-status="renamed"] > div svg {
-  color: var(--fgColor-muted, #59636e) !important;
+  color: var(--fgColor-attention, #9a6700) !important;
 }
 .pr-focus-files [data-viewed] a,
 .pr-focus-files [data-viewed] svg {
