@@ -1,6 +1,7 @@
 // Every GitHub DOM selector lives here. GitHub's React markup hashes its class names,
 // so these use only data-* attributes, octicon classes, hrefs and tag structure.
-// Checked against github.com on 2026-11-23 (repo /pulls, /pulls/* dashboard, PR page), signed in and signed out.
+// Checked against github.com on 2026-11-23 (repo /pulls, /pulls/* dashboard, PR page), signed in and signed out,
+// and on 2026-11-24 (a PR's changed files).
 const gh = (() => {
   const SEL = {
     // PR and issue lists share this list component; PR rows are told apart by their title link's /pull/ href.
@@ -20,6 +21,27 @@ const gh = (() => {
     linearIssueLink: 'a[href^="https://linear.app/"][href*="/issue/"]:not(.pr-focus-linear a)',
     // A comment by Linear's GitHub app. Its linkback names the issue the PR is linked to.
     linearBotComment: 'article:has([data-testid="comment-header"] a[href^="/apps/linear"])',
+    // A PR's changed files. Two markups are live: the React view at /pull/<n>/changes (signed in; /files redirects
+    // there) and the older view at /pull/<n>/files (signed out). Each selector names the React one first.
+    diffList: '[data-testid="progressive-diffs-list"], #files.js-diff-container',
+    // The older view marks each file .file, at some depth: it adds files in batches.
+    diffFile: '.file[id^="diff-"]',
+    // The React list wraps each file in a child, and the file's diff anchor is that child's own child.
+    diffAnchor: ':scope > [id^="diff-"]',
+    // Path and line counts are read inside the file's header, which comes before the diff.
+    diffHeader: '[data-diff-header-wrapper], .file-header',
+    // The React header shows the path, and a rename as visible short paths plus the full ones for screen readers.
+    diffPath: 'h3 code',
+    diffPathSpoken: 'h3 code .sr-only',
+    // "Lines changed: 19 additions & 2 deletions" (React), "21 changes: 19 additions & 2 deletions" (older).
+    diffStat: '.sr-only',
+    diffTable: 'table',
+    // "Some generated files are not rendered by default. Learn more about ...", shown in place of the diff.
+    generatedNote: 'a[href*="customizing-how-changed-files-appear-on-github"]',
+    // The file tree beside the diffs, the same roles in both views. A file's item links to its diff.
+    tree: 'ul[aria-label="File Tree"]',
+    treeItem: 'li[role="treeitem"]',
+    treeLink: 'a[href^="#diff-"]',
   };
 
   const lists = () => document.querySelectorAll(SEL.list);
@@ -77,5 +99,44 @@ const gh = (() => {
     };
   }
 
-  return { viewer, lists, prRows, readRow, rowTitleAnchor, isListPage, isPrPage, readPrPage };
+  const diffList = () => document.querySelector(SEL.diffList);
+
+  // The files of a diff list: { el, id, path, generated, added, deleted }. el is the element to hide and id the
+  // file's diff anchor, which its tree item links to. A file whose path cannot be read is left out, so it stays.
+  // A loaded diff can be thousands of rows, so nothing here searches one: a big PR is read on every pass.
+  function diffFiles(list) {
+    const files = [];
+    const older = list.id === 'files';
+    for (const el of older ? list.querySelectorAll(SEL.diffFile) : list.children) {
+      const anchor = older ? el : el.querySelector(SEL.diffAnchor);
+      const header = anchor && el.querySelector(SEL.diffHeader);
+      if (!header) continue;
+      const name = header.querySelector(SEL.diffPathSpoken) || header.querySelector(SEL.diffPath);
+      const path = el.dataset.tagsearchPath || prFocus.headerPath(name?.textContent);
+      if (!path) continue;
+      const stat = [...header.querySelectorAll(SEL.diffStat)].map((node) => node.textContent).find((text) => /addition/.test(text));
+      // The note only stands in for a diff that is not loaded.
+      const note = el.querySelector(SEL.diffTable) ? null : el.querySelector(SEL.generatedNote);
+      files.push({
+        el,
+        id: anchor.id,
+        path,
+        generated: /generated/i.test(note?.parentElement.textContent || ''),
+        ...prFocus.lineStat(stat),
+      });
+    }
+    return files;
+  }
+
+  // Items of the file tree, parents before children: { li, folder }. folder is the item that holds this one, or null.
+  function treeItems() {
+    const tree = document.querySelector(SEL.tree);
+    if (!tree) return [];
+    return [...tree.querySelectorAll(SEL.treeItem)].map((li) => ({ li, folder: li.parentElement.closest(SEL.treeItem) }));
+  }
+
+  // Diff anchor of a file's tree item. Not for a folder's item: that would find the first file in it.
+  const treeFileId = (li) => (li.querySelector(SEL.treeLink)?.hash || '').slice(1);
+
+  return { viewer, lists, prRows, readRow, rowTitleAnchor, isListPage, isPrPage, readPrPage, diffList, diffFiles, treeItems, treeFileId };
 })();

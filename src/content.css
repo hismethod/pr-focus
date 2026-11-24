@@ -7,6 +7,54 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   opacity: 0.55;
 }
 
+/* A PR's changed files. content.js only marks them: code files, noise files by kind, and the tree items of noise
+   files. Every rule here also needs the bar or a section heading to be on the page, so when one is not drawn
+   nothing is hidden or moved. */
+
+/* Hide noise: noise files and their tree items go while the bar that brings them back is there. */
+html:has(.pr-focus-bar[data-pr-focus-mode="hide"]) [data-pr-focus-file]:not([data-pr-focus-file="code"]) {
+  display: none !important;
+}
+
+/* Sections: GitHub's list of files is a flex column, so order alone puts the code first and each kind below its
+   heading. The page's own order of elements is not touched. Everything unmarked (the end of the list) stays last.
+   Only div: the tree items of noise files carry the same mark and must stay where they are. */
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div[data-pr-focus-file="code"] {
+  order: -50;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="tests"], [data-pr-focus-file="tests"]) {
+  order: -40;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="lockfiles"], [data-pr-focus-file="lockfiles"]) {
+  order: -30;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="generated"], [data-pr-focus-file="generated"]) {
+  order: -20;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="custom"], [data-pr-focus-file="custom"]) {
+  order: -10;
+}
+/* The older files view (signed out) is not a flex column and nests its files in batches. Flattening the batches
+   makes every file an item of one column, so the same order works. */
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) #files {
+  display: flex;
+  flex-direction: column;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) #files :is(.js-diff-progressive-container, copilot-diff-entry) {
+  display: contents;
+}
+/* A collapsed section: its files and their tree items go while the heading that opens it is there. */
+html:has([data-pr-focus-section="tests"][data-pr-focus-collapsed]) [data-pr-focus-file="tests"],
+html:has([data-pr-focus-section="lockfiles"][data-pr-focus-collapsed]) [data-pr-focus-file="lockfiles"],
+html:has([data-pr-focus-section="generated"][data-pr-focus-collapsed]) [data-pr-focus-file="generated"],
+html:has([data-pr-focus-section="custom"][data-pr-focus-collapsed]) [data-pr-focus-file="custom"] {
+  display: none !important;
+}
+/* The file tree is nested by folder and cannot be regrouped, so in Sections mode noise files are dimmed in place. */
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) li[data-pr-focus-file]:not(:has(li)) {
+  opacity: 0.55;
+}
+
 /* Colors come from GitHub's own theme variables so light and dark mode both work. */
 .pr-focus-bar {
   display: flex;
@@ -21,7 +69,7 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   font-size: 12px;
 }
 .pr-focus-bar button {
-  margin-left: auto;
+  margin-left: 0;
   padding: 2px 10px;
   border: 1px solid var(--borderColor-default, #d1d9e0);
   border-radius: 6px;
@@ -29,6 +77,43 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   color: var(--fgColor-default, #1f2328);
   font: inherit;
   cursor: pointer;
+}
+.pr-focus-bar button:first-of-type {
+  margin-left: auto;
+}
+/* Of a row of choices, the pressed button is the current one. */
+.pr-focus-bar button[aria-pressed="true"] {
+  border-color: var(--borderColor-accent-emphasis, #0969da);
+  background: var(--bgColor-accent-muted, #ddf4ff);
+  font-weight: 600;
+}
+
+/* GitHub's React list spaces its items itself; the older view does not. */
+#files > .pr-focus-section {
+  margin-bottom: 16px;
+}
+.pr-focus-section button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  border-radius: 6px;
+  background: var(--bgColor-muted, #f6f8fa);
+  color: var(--fgColor-default, #1f2328);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.pr-focus-section button::before {
+  content: "▾";
+  color: var(--fgColor-muted, #59636e);
+}
+.pr-focus-section button[aria-expanded="false"]::before {
+  content: "▸";
 }
 
 .pr-focus-linear {
