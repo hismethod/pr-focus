@@ -233,10 +233,13 @@ test('sections: a kind without files has no section', () => {
   assert.deepEqual(rules.fileSections([]), []);
 });
 
-// Rows as text, indented by depth: a folder ends in a slash.
-const outline = (rows) => rows.map(({ depth, dir, file }) => `${'  '.repeat(depth)}${dir ? `${dir}/` : file.name}`);
+// A tree as text, indented by depth: a folder ends in a slash.
+const outline = (nodes, depth = 0) =>
+  nodes.flatMap(({ name, children, file }) =>
+    file ? [`${'  '.repeat(depth)}${file.name}`] : [`${'  '.repeat(depth)}${name}/`, ...outline(children, depth + 1)],
+  );
 
-test('section rows: a folder tree with folders before files, like the tree GitHub draws', () => {
+test('section tree: folders before files, and a chain of single folders is one node, like the tree GitHub draws', () => {
   const [code] = rules.fileSections([
     file('README.md', 'code'),
     file('src/core/__tests__/helper.ts', 'code'),
@@ -245,32 +248,43 @@ test('section rows: a folder tree with folders before files, like the tree GitHu
     file('src/ui/button/index.tsx', 'code'),
     file('src/ui/button/style.css', 'code'),
   ]);
-  assert.deepEqual(outline(code.rows), [
+  assert.deepEqual(outline(code.tree), [
     'src/',
     '  core/',
     '    __tests__/',
     '      helper.ts',
     '    a.ts',
     '    b.ts',
-    // ui holds nothing but button, so the two are one row.
+    // ui holds nothing but button, so the two are one node.
     '  ui/button/',
     '    index.tsx',
     '    style.css',
     'README.md',
   ]);
+  const src = code.tree[0];
+  // A folder knows its whole path, which is what its open or closed state is kept under.
+  assert.deepEqual(
+    src.children.map((node) => [node.name, node.path]),
+    [
+      ['core', 'src/core'],
+      ['ui/button', 'src/ui/button'],
+    ],
+  );
+  assert.equal(src.children[0].children[0].path, 'src/core/__tests__');
   // A file keeps what it came with and gains its name.
-  assert.deepEqual(code.rows[4].file, { path: 'src/core/a.ts', kind: 'code', added: 5, deleted: 1, id: 'diff-src/core/a.ts', name: 'a.ts' });
+  assert.deepEqual(src.children[0].children[1].file, { path: 'src/core/a.ts', kind: 'code', added: 5, deleted: 1, id: 'diff-src/core/a.ts', name: 'a.ts' });
 });
 
-test('section rows: each section has its own tree, so a shared folder is written in both', () => {
+test('section tree: each section has its own tree, so a shared folder is written in both', () => {
   const [code, tests] = rules.fileSections([
     file('src/modules/auth/login.spec.ts', 'tests'),
     file('src/modules/auth/login.ts', 'code'),
     file('src/modules/pay/charge.spec.ts', 'tests'),
     file('package.json', 'code'),
   ]);
-  assert.deepEqual(outline(code.rows), ['src/modules/auth/', '  login.ts', 'package.json']);
-  assert.deepEqual(outline(tests.rows), ['src/modules/', '  auth/', '    login.spec.ts', '  pay/', '    charge.spec.ts']);
+  assert.deepEqual(outline(code.tree), ['src/modules/auth/', '  login.ts', 'package.json']);
+  assert.deepEqual(outline(tests.tree), ['src/modules/', '  auth/', '    login.spec.ts', '  pay/', '    charge.spec.ts']);
+  assert.equal(code.tree[0].path, 'src/modules/auth');
 });
 
 test('files bar text: what is noise, its size, and the code, in each mode', () => {

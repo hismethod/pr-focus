@@ -120,37 +120,27 @@ html:has([data-pr-focus-section="custom"][data-pr-focus-collapsed]) [data-pr-foc
   font-size: 13px;
 }
 .pr-focus-files-section > button {
+  margin-bottom: 4px;
   padding: 4px 8px;
   font-size: 12px;
   white-space: nowrap;
 }
-/* The rows of a section: folders and files, indented by content.js to their depth. */
-.pr-focus-files-folder,
-.pr-focus-files-file {
-  overflow: hidden;
-  padding: 3px 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* A section's tree is made of copies of GitHub's own tree rows, which GitHub's styles draw. Ours are only what
+   GitHub's tree does not have: a file's line counts after its name, and the look of a viewed file. */
+.pr-focus-files [role="tree"] {
+  margin: 0;
+  /* GitHub's root carries its own right padding; the list already has it. */
+  padding: 0 !important;
+  list-style: none;
 }
-.pr-focus-files-folder {
-  color: var(--fgColor-muted, #59636e);
-}
-.pr-focus-files-file {
+.pr-focus-files-lines {
   display: flex;
-  gap: 6px;
-  border-radius: 6px;
-  color: var(--fgColor-default, #1f2328) !important;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-left: auto;
+  padding: 0 8px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  text-decoration: none !important;
-}
-.pr-focus-files-file:hover {
-  background: var(--bgColor-neutral-muted, #818b981f);
-}
-.pr-focus-files-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .pr-focus-files-added {
   color: var(--fgColor-success, #1a7f37);
@@ -158,12 +148,66 @@ html:has([data-pr-focus-section="custom"][data-pr-focus-collapsed]) [data-pr-foc
 .pr-focus-files-deleted {
   color: var(--fgColor-danger, #d1242f);
 }
-/* A file GitHub has as viewed. */
-.pr-focus-files-file[data-viewed] {
+/* A file's icon says how the file changed. It is GitHub's own icon. Added is green and deleted red, as GitHub
+   draws them. A changed file is amber and a renamed one gray, as in GitHub's older tree: its React tree has those
+   two the other way round, gray for the change and amber for the rename. */
+.pr-focus-files [data-pr-focus-status="modified"] > div svg {
+  color: var(--fgColor-attention, #9a6700) !important;
+}
+.pr-focus-files [data-pr-focus-status="renamed"] > div svg {
+  color: var(--fgColor-muted, #59636e) !important;
+}
+.pr-focus-files [data-viewed] a,
+.pr-focus-files [data-viewed] svg {
   opacity: 0.55;
 }
-.pr-focus-files-file[data-viewed] .pr-focus-files-name::after {
+.pr-focus-files [data-viewed] a::after {
   content: " ✓";
+}
+
+/* Rows of our own, where GitHub's cannot be copied (the older files view): the same tree, drawn plainly. */
+.pr-focus-files-row,
+.pr-focus-files-row ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pr-focus-files-box {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pr-focus-files-box:hover {
+  background: var(--control-transparent-bgColor-hover, #818b981a);
+}
+.pr-focus-files-row[aria-current="true"] > .pr-focus-files-box {
+  background: var(--control-transparent-bgColor-selected, #818b9826);
+  box-shadow: inset 3px 0 var(--fgColor-accent, #0969da);
+}
+.pr-focus-files-box > svg {
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+.pr-focus-files-box::before {
+  flex-shrink: 0;
+  width: 16px;
+  color: var(--fgColor-muted, #59636e);
+  content: "";
+}
+.pr-focus-files-row[aria-expanded="true"] > .pr-focus-files-box::before {
+  content: "▾";
+}
+.pr-focus-files-row[aria-expanded="false"] > .pr-focus-files-box::before {
+  content: "▸";
+}
+.pr-focus-files-name {
+  overflow: hidden;
+  color: var(--fgColor-default, #1f2328) !important;
+  text-decoration: none !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pr-focus-linear {

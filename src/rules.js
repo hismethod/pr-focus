@@ -129,12 +129,15 @@ const prFocus = (() => {
     return customRe;
   }
 
-  // Why a changed file is hidden under these settings ('tests' | 'lockfiles' | 'generated', or 'custom' for the
-  // user's own globs), or null to keep it. marked: GitHub itself collapsed the file as generated.
+  const builtIn = new Map();
+
+  // Which kind of noise a changed file is under these settings ('tests' | 'lockfiles' | 'generated', or 'custom'
+  // for the user's own globs), or null for code. marked: GitHub itself collapsed the file as generated.
   // A file belongs to the first kind it matches, so switching that kind off shows it even when GitHub marks it.
   function fileNoise(path, settings, marked) {
-    const kind =
-      Object.keys(FILE_KINDS).find((name) => FILE_KINDS[name].re.test(path)) || (marked ? 'generated' : null);
+    // The built-in kind of a path never changes, and every file of a diff is asked about on every pass.
+    if (!builtIn.has(path)) builtIn.set(path, Object.keys(FILE_KINDS).find((name) => FILE_KINDS[name].re.test(path)));
+    const kind = builtIn.get(path) || (marked ? 'generated' : null);
     if (kind && settings[FILE_KINDS[kind].setting]) return kind;
     return customGlobs(settings.diffGlobs)?.test(path) ? 'custom' : null;
   }
@@ -164,10 +167,10 @@ const prFocus = (() => {
   // The order sections come in: the code, then each kind of noise.
   const SECTION_KINDS = ['code', ...Object.keys(FILE_KINDS), 'custom'];
 
-  // The files of one section as the rows of a folder tree, like GitHub's own: [{ depth, dir } | { depth, file }],
-  // a folder's row followed by what it holds, one level deeper. file gains its name. A chain of folders that hold
-  // nothing but the next folder is one row ("src/modules/core"). Folders come before files, both in the order met.
-  function fileRows(files) {
+  // The files of one section as a folder tree like GitHub's own: [{ name, path, children } | { file }], folders
+  // before files, both in the order met. file gains its name. A chain of folders that hold nothing but the next
+  // folder is one node, as in GitHub's tree: name is "src/modules/core" and path the whole path of its last folder.
+  function fileTree(files) {
     const root = { dirs: new Map(), files: [] };
     for (const file of files) {
       const parts = file.path.split('/');
@@ -178,30 +181,27 @@ const prFocus = (() => {
       }
       node.files.push({ ...file, name: parts[parts.length - 1] });
     }
-    const rows = [];
-    const walk = (node, depth) => {
-      for (let [dir, inside] of node.dirs) {
+    const build = (node, prefix) => [
+      ...[...node.dirs].map(([name, inside]) => {
         while (inside.dirs.size === 1 && !inside.files.length) {
-          const [[name, next]] = inside.dirs;
-          dir += `/${name}`;
-          inside = next;
+          const [[next, deeper]] = inside.dirs;
+          name += `/${next}`;
+          inside = deeper;
         }
-        rows.push({ depth, dir });
-        walk(inside, depth + 1);
-      }
-      for (const file of node.files) rows.push({ depth, file });
-    };
-    walk(root, 0);
-    return rows;
+        return { name, path: prefix + name, children: build(inside, `${prefix}${name}/`) };
+      }),
+      ...node.files.map((file) => ({ file })),
+    ];
+    return build(root, '');
   }
 
   // A PR's files grouped for Sections mode. files is [{ path, kind, added, deleted, ... }] in GitHub's order, kind
   // being 'code' or a kind of noise. Returns the sections that have files, in the order above:
-  // [{ kind, files, added, deleted, rows }], rows being fileRows() of the section's files.
+  // [{ kind, files, added, deleted, tree }], tree being fileTree() of the section's files.
   function fileSections(files) {
     return SECTION_KINDS.map((kind) => {
       const own = files.filter((file) => file.kind === kind);
-      const section = { kind, files: own.length, added: 0, deleted: 0, rows: fileRows(own) };
+      const section = { kind, files: own.length, added: 0, deleted: 0, tree: fileTree(own) };
       for (const file of own) {
         section.added += file.added;
         section.deleted += file.deleted;
