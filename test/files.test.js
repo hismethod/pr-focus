@@ -192,15 +192,15 @@ test('line counts from a file header', () => {
   assert.deepEqual(rules.lineStat(undefined), { added: 0, deleted: 0 });
 });
 
-test('file mode: All or Sections, and anything else counts as all', () => {
-  assert.equal(defaults.diffMode, 'all');
+test('file mode: All or Sections, Sections by default, and anything else counts as the default', () => {
+  assert.equal(defaults.diffMode, 'sections');
+  assert.equal(rules.fileMode('all'), 'all');
   assert.equal(rules.fileMode('sections'), 'sections');
   // 'hide' was a mode before 0.3.0 was released; a stored value like it must not break anything.
-  for (const value of ['all', 'hide', '', undefined, true, 'Sections']) assert.equal(rules.fileMode(value), 'all', String(value));
+  for (const value of ['hide', '', undefined, true, 'All']) assert.equal(rules.fileMode(value), 'sections', String(value));
   assert.equal(rules.nextFileMode('all'), 'sections');
   assert.equal(rules.nextFileMode('sections'), 'all');
-  assert.equal(rules.nextFileMode('hide'), 'sections');
-  assert.equal(rules.nextFileMode(undefined), 'sections');
+  assert.equal(rules.nextFileMode(undefined), 'all');
 });
 
 // A changed file as content.js hands it over, with made-up numbers.

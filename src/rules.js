@@ -7,7 +7,7 @@ const prFocus = (() => {
     linearWorkspace: '',
     linearTeams: '',
     // A PR's changed files. diffMode is the All / Sections choice; the rest say what counts as noise.
-    diffMode: 'all',
+    diffMode: 'sections',
     diffTests: true,
     diffLockfiles: true,
     diffGenerated: true,
@@ -158,10 +158,10 @@ const prFocus = (() => {
   }
 
   // How a PR's changed files are shown: as GitHub shows them, or in sections with the code first and each kind of
-  // noise below it. Anything else that reaches the setting counts as 'all'.
+  // noise below it. Anything else that reaches the setting counts as the default.
   const FILE_MODE_LABEL = { all: 'All', sections: 'Sections' };
   const FILE_MODES = Object.keys(FILE_MODE_LABEL);
-  const fileMode = (value) => (FILE_MODES.includes(value) ? value : 'all');
+  const fileMode = (value) => (FILE_MODES.includes(value) ? value : DEFAULTS.diffMode);
   const nextFileMode = (value) => FILE_MODES[(FILE_MODES.indexOf(fileMode(value)) + 1) % FILE_MODES.length];
 
   // The order sections come in: the code, then each kind of noise.
