@@ -6,7 +6,7 @@ const prFocus = (() => {
     titlePattern: '',
     linearWorkspace: '',
     linearTeams: '',
-    // A PR's changed files. diffMode is the All / Sections / Hide noise choice; the rest say what counts as noise.
+    // A PR's changed files. diffMode is the All / Sections choice; the rest say what counts as noise.
     diffMode: 'all',
     diffTests: true,
     diffLockfiles: true,
@@ -154,32 +154,81 @@ const prFocus = (() => {
     return m ? { added: number(m[1]), deleted: number(m[2]) } : { added: 0, deleted: 0 };
   }
 
-  // How a PR's changed files are shown: as GitHub shows them, with the noise in sections below the code, or with
-  // the noise hidden. Anything else that reaches the setting counts as 'all'.
-  const FILE_MODE_LABEL = { all: 'All', sections: 'Sections', hide: 'Hide noise' };
+  // How a PR's changed files are shown: as GitHub shows them, or in sections with the code first and each kind of
+  // noise below it. Anything else that reaches the setting counts as 'all'.
+  const FILE_MODE_LABEL = { all: 'All', sections: 'Sections' };
   const FILE_MODES = Object.keys(FILE_MODE_LABEL);
   const fileMode = (value) => (FILE_MODES.includes(value) ? value : 'all');
   const nextFileMode = (value) => FILE_MODES[(FILE_MODES.indexOf(fileMode(value)) + 1) % FILE_MODES.length];
 
+  // The order sections come in: the code, then each kind of noise.
+  const SECTION_KINDS = ['code', ...Object.keys(FILE_KINDS), 'custom'];
+
+  // The files of one section as the rows of a folder tree, like GitHub's own: [{ depth, dir } | { depth, file }],
+  // a folder's row followed by what it holds, one level deeper. file gains its name. A chain of folders that hold
+  // nothing but the next folder is one row ("src/modules/core"). Folders come before files, both in the order met.
+  function fileRows(files) {
+    const root = { dirs: new Map(), files: [] };
+    for (const file of files) {
+      const parts = file.path.split('/');
+      let node = root;
+      for (const part of parts.slice(0, -1)) {
+        if (!node.dirs.has(part)) node.dirs.set(part, { dirs: new Map(), files: [] });
+        node = node.dirs.get(part);
+      }
+      node.files.push({ ...file, name: parts[parts.length - 1] });
+    }
+    const rows = [];
+    const walk = (node, depth) => {
+      for (let [dir, inside] of node.dirs) {
+        while (inside.dirs.size === 1 && !inside.files.length) {
+          const [[name, next]] = inside.dirs;
+          dir += `/${name}`;
+          inside = next;
+        }
+        rows.push({ depth, dir });
+        walk(inside, depth + 1);
+      }
+      for (const file of node.files) rows.push({ depth, file });
+    };
+    walk(root, 0);
+    return rows;
+  }
+
+  // A PR's files grouped for Sections mode. files is [{ path, kind, added, deleted, ... }] in GitHub's order, kind
+  // being 'code' or a kind of noise. Returns the sections that have files, in the order above:
+  // [{ kind, files, added, deleted, rows }], rows being fileRows() of the section's files.
+  function fileSections(files) {
+    return SECTION_KINDS.map((kind) => {
+      const own = files.filter((file) => file.kind === kind);
+      const section = { kind, files: own.length, added: 0, deleted: 0, rows: fileRows(own) };
+      for (const file of own) {
+        section.added += file.added;
+        section.deleted += file.deleted;
+      }
+      return section;
+    }).filter((section) => section.files);
+  }
+
   const fileCount = (n) => `${n} file${n === 1 ? '' : 's'}`;
   const lineCount = ({ added, deleted }) => `+${added} −${deleted}`;
 
-  // Text of the bar above a PR's changed files. kinds is { kind: { files, added, deleted } } of the noise files,
-  // rest the same sums of the files that are not noise.
-  function filesBarText({ kinds, rest, mode }) {
-    const names = [...Object.keys(FILE_KINDS), 'custom'].filter((kind) => kinds[kind]);
+  // Text of the bar above a PR's changed files, from the sections fileSections() returns.
+  function filesBarText(sections, mode) {
+    const code = sections.find((section) => section.kind === 'code') || { files: 0, added: 0, deleted: 0 };
+    const kinds = sections.filter((section) => section.kind !== 'code');
     const noise = { files: 0, added: 0, deleted: 0 };
-    for (const kind of names) for (const key of Object.keys(noise)) noise[key] += kinds[kind][key];
-    const detail = names.map((kind) => `${kinds[kind].files} ${kinds[kind].files === 1 ? kind.replace(/s$/, '') : kind}`);
+    for (const kind of kinds) for (const key of Object.keys(noise)) noise[key] += kind[key];
+    const detail = kinds.map(({ kind, files }) => `${files} ${files === 1 ? kind.replace(/s$/, '') : kind}`);
     const what = `(${detail.join(', ')}) · ${lineCount(noise)}`;
-    if (mode === 'hide') return `PR Focus: ${fileCount(noise.files)} hidden ${what} · ${fileCount(rest.files)} left, ${lineCount(rest)}`;
     if (mode === 'sections')
-      return `PR Focus: ${fileCount(noise.files)} in sections below ${what} · ${fileCount(rest.files)} of code first, ${lineCount(rest)}`;
-    return `PR Focus: tests & noise in ${noise.files} of ${fileCount(noise.files + rest.files)} ${what}`;
+      return `PR Focus: ${fileCount(noise.files)} in sections below ${what} · ${fileCount(code.files)} of code first, ${lineCount(code)}`;
+    return `PR Focus: tests & noise in ${noise.files} of ${fileCount(noise.files + code.files)} ${what}`;
   }
 
-  // Heading of one section in Sections mode: "Tests · 4 files · +98 −7".
-  const sectionText = (kind, sum) => `${kind[0].toUpperCase()}${kind.slice(1)} · ${fileCount(sum.files)} · ${lineCount(sum)}`;
+  // Heading of one section: "Tests · 4 files · +98 −7".
+  const sectionText = ({ kind, files, added, deleted }) =>
+    `${kind[0].toUpperCase()}${kind.slice(1)} · ${fileCount(files)} · ${lineCount({ added, deleted })}`;
 
   // Prefixes that look like issue keys but never are. Not used when the team keys option lists the real ones.
   const NOT_KEYS = new Set([
@@ -256,6 +305,7 @@ const prFocus = (() => {
     FILE_MODE_LABEL,
     fileMode,
     nextFileMode,
+    fileSections,
     filesBarText,
     sectionText,
     teamKeys,

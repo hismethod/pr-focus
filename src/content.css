@@ -7,19 +7,12 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   opacity: 0.55;
 }
 
-/* A PR's changed files. content.js only marks them: code files, noise files by kind, and the tree items of noise
-   files. Every rule here also needs the bar or a section heading to be on the page, so when one is not drawn
-   nothing is hidden or moved. */
-
-/* Hide noise: noise files and their tree items go while the bar that brings them back is there. */
-html:has(.pr-focus-bar[data-pr-focus-mode="hide"]) [data-pr-focus-file]:not([data-pr-focus-file="code"]) {
-  display: none !important;
-}
+/* A PR's changed files. content.js only marks each file with its kind. Every rule here also needs the bar, a
+   section's heading or our own file list to be on the page, so when one is not drawn the page is GitHub's again. */
 
 /* Sections: GitHub's list of files is a flex column, so order alone puts the code first and each kind below its
-   heading. The page's own order of elements is not touched. Everything unmarked (the end of the list) stays last.
-   Only div: the tree items of noise files carry the same mark and must stay where they are. */
-html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div[data-pr-focus-file="code"] {
+   heading. The page's own order of elements is not touched. Everything unmarked (the end of the list) stays last. */
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="code"], [data-pr-focus-file="code"]) {
   order: -50;
 }
 html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="tests"], [data-pr-focus-file="tests"]) {
@@ -43,16 +36,18 @@ html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) #files {
 html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) #files :is(.js-diff-progressive-container, copilot-diff-entry) {
   display: contents;
 }
-/* A collapsed section: its files and their tree items go while the heading that opens it is there. */
+/* A folded section: its files go while a heading that opens it again is there. */
+html:has([data-pr-focus-section="code"][data-pr-focus-collapsed]) [data-pr-focus-file="code"],
 html:has([data-pr-focus-section="tests"][data-pr-focus-collapsed]) [data-pr-focus-file="tests"],
 html:has([data-pr-focus-section="lockfiles"][data-pr-focus-collapsed]) [data-pr-focus-file="lockfiles"],
 html:has([data-pr-focus-section="generated"][data-pr-focus-collapsed]) [data-pr-focus-file="generated"],
 html:has([data-pr-focus-section="custom"][data-pr-focus-collapsed]) [data-pr-focus-file="custom"] {
   display: none !important;
 }
-/* The file tree is nested by folder and cannot be regrouped, so in Sections mode noise files are dimmed in place. */
-html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) li[data-pr-focus-file]:not(:has(li)) {
-  opacity: 0.55;
+/* Our file list stands in for GitHub's file tree, which comes right after it. The tree is hidden only while the
+   list is there. */
+.pr-focus-files + * {
+  display: none !important;
 }
 
 /* Colors come from GitHub's own theme variables so light and dark mode both work. */
@@ -92,7 +87,8 @@ html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) li[data-pr-focus-file]:no
 #files > .pr-focus-section {
   margin-bottom: 16px;
 }
-.pr-focus-section button {
+/* A section's heading, above its files in the diff and in our file list. */
+:is(.pr-focus-section, .pr-focus-files-section) > button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -108,12 +104,66 @@ html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) li[data-pr-focus-file]:no
   text-align: left;
   cursor: pointer;
 }
-.pr-focus-section button::before {
+:is(.pr-focus-section, .pr-focus-files-section) > button::before {
   content: "▾";
   color: var(--fgColor-muted, #59636e);
 }
-.pr-focus-section button[aria-expanded="false"]::before {
+:is(.pr-focus-section, .pr-focus-files-section) > button[aria-expanded="false"]::before {
   content: "▸";
+}
+
+.pr-focus-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 12px;
+  font-size: 13px;
+}
+.pr-focus-files-section > button {
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+/* The rows of a section: folders and files, indented by content.js to their depth. */
+.pr-focus-files-folder,
+.pr-focus-files-file {
+  overflow: hidden;
+  padding: 3px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pr-focus-files-folder {
+  color: var(--fgColor-muted, #59636e);
+}
+.pr-focus-files-file {
+  display: flex;
+  gap: 6px;
+  border-radius: 6px;
+  color: var(--fgColor-default, #1f2328) !important;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none !important;
+}
+.pr-focus-files-file:hover {
+  background: var(--bgColor-neutral-muted, #818b981f);
+}
+.pr-focus-files-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pr-focus-files-added {
+  color: var(--fgColor-success, #1a7f37);
+}
+.pr-focus-files-deleted {
+  color: var(--fgColor-danger, #d1242f);
+}
+/* A file GitHub has as viewed. */
+.pr-focus-files-file[data-viewed] {
+  opacity: 0.55;
+}
+.pr-focus-files-file[data-viewed] .pr-focus-files-name::after {
+  content: " ✓";
 }
 
 .pr-focus-linear {

@@ -192,49 +192,113 @@ test('line counts from a file header', () => {
   assert.deepEqual(rules.lineStat(undefined), { added: 0, deleted: 0 });
 });
 
-test('file mode: three choices in a cycle, and anything else counts as all', () => {
+test('file mode: All or Sections, and anything else counts as all', () => {
   assert.equal(defaults.diffMode, 'all');
   assert.equal(rules.fileMode('sections'), 'sections');
-  assert.equal(rules.fileMode('hide'), 'hide');
-  for (const value of ['all', '', undefined, true, 'Hide']) assert.equal(rules.fileMode(value), 'all', String(value));
+  // 'hide' was a mode before 0.3.0 was released; a stored value like it must not break anything.
+  for (const value of ['all', 'hide', '', undefined, true, 'Sections']) assert.equal(rules.fileMode(value), 'all', String(value));
   assert.equal(rules.nextFileMode('all'), 'sections');
-  assert.equal(rules.nextFileMode('sections'), 'hide');
-  assert.equal(rules.nextFileMode('hide'), 'all');
+  assert.equal(rules.nextFileMode('sections'), 'all');
+  assert.equal(rules.nextFileMode('hide'), 'sections');
   assert.equal(rules.nextFileMode(undefined), 'sections');
 });
 
-test('files bar text: what is noise, its size, and what is left, in each mode', () => {
-  const rest = { files: 14, added: 378, deleted: 239 };
-  // Kinds come in a fixed order whatever order the files were met in.
-  const kinds = {
-    generated: { files: 1, added: 30, deleted: 4 },
-    tests: { files: 2, added: 100, deleted: 10 },
-    lockfiles: { files: 1, added: 200, deleted: 20 },
-  };
-  assert.equal(
-    rules.filesBarText({ kinds, rest, mode: 'hide' }),
-    'PR Focus: 4 files hidden (2 tests, 1 lockfile, 1 generated) · +330 −34 · 14 files left, +378 −239',
+// A changed file as content.js hands it over, with made-up numbers.
+const file = (path, kind, added = 1, deleted = 0) => ({ path, kind, added, deleted, id: `diff-${path}` });
+
+test('sections: the code first, then each kind of noise, whatever order the files come in', () => {
+  const sections = rules.fileSections([
+    file('pnpm-lock.yaml', 'lockfiles', 200, 20),
+    file('docs/intro.md', 'custom'),
+    file('src/login.test.ts', 'tests', 60, 4),
+    file('dist/index.js', 'generated', 30, 4),
+    file('src/login.ts', 'code', 10, 2),
+    file('src/logout.test.ts', 'tests', 40, 6),
+  ]);
+  assert.deepEqual(
+    sections.map(({ kind, files, added, deleted }) => [kind, files, added, deleted]),
+    [
+      ['code', 1, 10, 2],
+      ['tests', 2, 100, 10],
+      ['lockfiles', 1, 200, 20],
+      ['generated', 1, 30, 4],
+      ['custom', 1, 1, 0],
+    ],
   );
+});
+
+test('sections: a kind without files has no section', () => {
+  const sections = rules.fileSections([file('src/login.ts', 'code'), file('yarn.lock', 'lockfiles')]);
+  assert.deepEqual(sections.map((section) => section.kind), ['code', 'lockfiles']);
+  assert.deepEqual(rules.fileSections([]), []);
+});
+
+// Rows as text, indented by depth: a folder ends in a slash.
+const outline = (rows) => rows.map(({ depth, dir, file }) => `${'  '.repeat(depth)}${dir ? `${dir}/` : file.name}`);
+
+test('section rows: a folder tree with folders before files, like the tree GitHub draws', () => {
+  const [code] = rules.fileSections([
+    file('README.md', 'code'),
+    file('src/core/__tests__/helper.ts', 'code'),
+    file('src/core/a.ts', 'code', 5, 1),
+    file('src/core/b.ts', 'code'),
+    file('src/ui/button/index.tsx', 'code'),
+    file('src/ui/button/style.css', 'code'),
+  ]);
+  assert.deepEqual(outline(code.rows), [
+    'src/',
+    '  core/',
+    '    __tests__/',
+    '      helper.ts',
+    '    a.ts',
+    '    b.ts',
+    // ui holds nothing but button, so the two are one row.
+    '  ui/button/',
+    '    index.tsx',
+    '    style.css',
+    'README.md',
+  ]);
+  // A file keeps what it came with and gains its name.
+  assert.deepEqual(code.rows[4].file, { path: 'src/core/a.ts', kind: 'code', added: 5, deleted: 1, id: 'diff-src/core/a.ts', name: 'a.ts' });
+});
+
+test('section rows: each section has its own tree, so a shared folder is written in both', () => {
+  const [code, tests] = rules.fileSections([
+    file('src/modules/auth/login.spec.ts', 'tests'),
+    file('src/modules/auth/login.ts', 'code'),
+    file('src/modules/pay/charge.spec.ts', 'tests'),
+    file('package.json', 'code'),
+  ]);
+  assert.deepEqual(outline(code.rows), ['src/modules/auth/', '  login.ts', 'package.json']);
+  assert.deepEqual(outline(tests.rows), ['src/modules/', '  auth/', '    login.spec.ts', '  pay/', '    charge.spec.ts']);
+});
+
+test('files bar text: what is noise, its size, and the code, in each mode', () => {
+  // Kinds come in a fixed order whatever order the files were met in.
+  const sections = rules.fileSections([
+    file('dist/index.js', 'generated', 30, 4),
+    file('src/a.test.ts', 'tests', 60, 4),
+    file('src/b.test.ts', 'tests', 40, 6),
+    file('yarn.lock', 'lockfiles', 200, 20),
+    ...Array.from({ length: 14 }, (_, i) => file(`src/code${i}.ts`, 'code', 27, i === 0 ? 239 : 0)),
+  ]);
   assert.equal(
-    rules.filesBarText({ kinds, rest, mode: 'sections' }),
+    rules.filesBarText(sections, 'sections'),
     'PR Focus: 4 files in sections below (2 tests, 1 lockfile, 1 generated) · +330 −34 · 14 files of code first, +378 −239',
   );
   assert.equal(
-    rules.filesBarText({ kinds, rest, mode: 'all' }),
+    rules.filesBarText(sections, 'all'),
     'PR Focus: tests & noise in 4 of 18 files (2 tests, 1 lockfile, 1 generated) · +330 −34',
   );
+  // Only noise in the PR.
   assert.equal(
-    rules.filesBarText({
-      kinds: { tests: { files: 1, added: 5, deleted: 0 }, custom: { files: 2, added: 0, deleted: 0 } },
-      rest: { files: 1, added: 1, deleted: 1 },
-      mode: 'hide',
-    }),
-    'PR Focus: 3 files hidden (1 test, 2 custom) · +5 −0 · 1 file left, +1 −1',
+    rules.filesBarText(rules.fileSections([file('a.test.ts', 'tests', 5, 0), file('docs/a.md', 'custom', 0, 0), file('docs/b.md', 'custom', 0, 0)]), 'sections'),
+    'PR Focus: 3 files in sections below (1 test, 2 custom) · +5 −0 · 0 files of code first, +0 −0',
   );
 });
 
 test('section heading: the kind, its files and its size', () => {
-  assert.equal(rules.sectionText('tests', { files: 4, added: 98, deleted: 7 }), 'Tests · 4 files · +98 −7');
-  assert.equal(rules.sectionText('lockfiles', { files: 1, added: 193, deleted: 90 }), 'Lockfiles · 1 file · +193 −90');
-  assert.equal(rules.sectionText('custom', { files: 2, added: 0, deleted: 0 }), 'Custom · 2 files · +0 −0');
+  assert.equal(rules.sectionText({ kind: 'tests', files: 4, added: 98, deleted: 7 }), 'Tests · 4 files · +98 −7');
+  assert.equal(rules.sectionText({ kind: 'code', files: 1, added: 13, deleted: 13 }), 'Code · 1 file · +13 −13');
+  assert.equal(rules.sectionText({ kind: 'custom', files: 2, added: 0, deleted: 0 }), 'Custom · 2 files · +0 −0');
 });

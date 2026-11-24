@@ -38,10 +38,14 @@ const gh = (() => {
     diffTable: 'table',
     // "Some generated files are not rendered by default. Learn more about ...", shown in place of the diff.
     generatedNote: 'a[href*="customizing-how-changed-files-appear-on-github"]',
+    // The React header's Viewed button is labelled "Viewed" or "Not Viewed" and pressed when the file is viewed.
+    viewedButton: 'button[aria-label$="Viewed"][aria-pressed="true"]',
     // The file tree beside the diffs, the same roles in both views. A file's item links to its diff.
     tree: 'ul[aria-label="File Tree"]',
     treeItem: 'li[role="treeitem"]',
     treeLink: 'a[href^="#diff-"]',
+    // The older tree keeps each file's path in a hidden text for its filter; the React tree keeps it in the item's id.
+    treePathOlder: '[data-filterable-item-text]',
   };
 
   const lists = () => document.querySelectorAll(SEL.list);
@@ -101,8 +105,9 @@ const gh = (() => {
 
   const diffList = () => document.querySelector(SEL.diffList);
 
-  // The files of a diff list: { el, id, path, generated, added, deleted }. el is the element to hide and id the
-  // file's diff anchor, which its tree item links to. A file whose path cannot be read is left out, so it stays.
+  // The files of a diff list: { el, id, path, generated, viewed, added, deleted }. el is the element that holds
+  // the file and id the file's diff anchor, which a link to the file names. A file whose path cannot be read is
+  // left out, so nothing happens to it.
   // A loaded diff can be thousands of rows, so nothing here searches one: a big PR is read on every pass.
   function diffFiles(list) {
     const files = [];
@@ -122,21 +127,31 @@ const gh = (() => {
         id: anchor.id,
         path,
         generated: /generated/i.test(note?.parentElement.textContent || ''),
+        viewed: !!header.querySelector(SEL.viewedButton),
         ...prFocus.lineStat(stat),
       });
     }
     return files;
   }
 
-  // Items of the file tree, parents before children: { li, folder }. folder is the item that holds this one, or null.
-  function treeItems() {
-    const tree = document.querySelector(SEL.tree);
-    if (!tree) return [];
-    return [...tree.querySelectorAll(SEL.treeItem)].map((li) => ({ li, folder: li.parentElement.closest(SEL.treeItem) }));
+  // GitHub's file tree, or null when the page has none (the user can hide it).
+  const tree = () => document.querySelector(SEL.tree);
+
+  // The files GitHub's tree lists: { id, path }. id is the file's diff anchor. A folder's item is skipped: it holds
+  // other items, or nothing while GitHub keeps it collapsed.
+  function treeFiles(root) {
+    const files = [];
+    for (const li of root.querySelectorAll(SEL.treeItem)) {
+      if (li.querySelector(SEL.treeItem)) continue;
+      const id = (li.querySelector(SEL.treeLink)?.hash || '').slice(1);
+      const path = li.querySelector(SEL.treePathOlder)?.textContent.trim() || li.id;
+      if (id && path) files.push({ id, path });
+    }
+    return files;
   }
 
-  // Diff anchor of a file's tree item. Not for a folder's item: that would find the first file in it.
-  const treeFileId = (li) => (li.querySelector(SEL.treeLink)?.hash || '').slice(1);
+  // The tree's own link to a file's diff anchor ("#diff-..."), or undefined.
+  const treeLink = (root, hash) => [...root.querySelectorAll(SEL.treeLink)].find((a) => a.hash === hash);
 
-  return { viewer, lists, prRows, readRow, rowTitleAnchor, isListPage, isPrPage, readPrPage, diffList, diffFiles, treeItems, treeFileId };
+  return { viewer, lists, prRows, readRow, rowTitleAnchor, isListPage, isPrPage, readPrPage, diffList, diffFiles, tree, treeFiles, treeLink };
 })();
