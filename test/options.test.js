@@ -5,10 +5,16 @@ const prFocus = require('../src/rules.js');
 
 function openOptions(stored = {}) {
   const elements = {};
+  // The view mode is a group of radio buttons in a fieldset; the other settings are a checkbox or a text field.
+  const radio = (value) => ({ type: 'radio', name: 'diffMode', value, checked: false });
+  const modes = [radio('all'), radio('sections')];
   const el = (id) =>
-    (elements[id] ||= { id, type: typeof prFocus.DEFAULTS[id] === 'boolean' ? 'checkbox' : 'text', value: '', hidden: true });
+    (elements[id] ||=
+      id === 'diffMode'
+        ? { id, type: 'fieldset', querySelectorAll: () => modes }
+        : { id, type: typeof prFocus.DEFAULTS[id] === 'boolean' ? 'checkbox' : 'text', value: '', hidden: true });
   const on = {};
-  const page = { el, on, stored, writes: [], failing: false };
+  const page = { el, on, stored, modes, writes: [], failing: false };
   const document = { activeElement: null, hidden: false, getElementById: el, addEventListener: (type, fn) => (on[type] = fn) };
   const chrome = {
     runtime: {},
@@ -37,10 +43,33 @@ function openOptions(stored = {}) {
   return page;
 }
 
+test('options.html has a field for every setting', () => {
+  // options.js looks each settings key up by id, so a setting without a field would stop the whole page.
+  const html = require('node:fs').readFileSync(require.resolve('../src/options.html'), 'utf8');
+  for (const key of Object.keys(prFocus.DEFAULTS)) assert.ok(html.includes(` id="${key}"`), key);
+});
+
 test('fields show the stored settings, or the defaults', () => {
   const page = openOptions({ linearWorkspace: 'acme' });
   assert.equal(page.el('linearWorkspace').value, 'acme');
   assert.equal(page.el('hideDrafts').checked, true);
+});
+
+test('the view mode is one choice of a radio group, Sections by default, and choosing saves it', () => {
+  const page = openOptions();
+  assert.deepEqual(page.modes.map((radio) => radio.checked), [false, true]);
+  // The browser unchecks the rest of the group and reports the radio button that was chosen.
+  page.modes[0].checked = true;
+  page.modes[1].checked = false;
+  page.on.input({ target: page.modes[0] });
+  page.on.change();
+  assert.deepEqual(page.writes, [{ diffMode: 'all' }]);
+});
+
+test('a stored view mode shows as its choice, and one that is no choice shows as the default', () => {
+  assert.deepEqual(openOptions({ diffMode: 'all' }).modes.map((radio) => radio.checked), [true, false]);
+  assert.deepEqual(openOptions({ diffMode: 'sections' }).modes.map((radio) => radio.checked), [false, true]);
+  assert.deepEqual(openOptions({ diffMode: 'hide' }).modes.map((radio) => radio.checked), [false, true]);
 });
 
 test('only the edited setting is saved', () => {

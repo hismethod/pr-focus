@@ -7,6 +7,49 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   opacity: 0.55;
 }
 
+/* A PR's changed files. content.js only marks each file with its kind. Every rule here also needs the bar, a
+   section's heading or our own file list to be on the page, so when one is not drawn the page is GitHub's again. */
+
+/* Sections: GitHub's list of files is a flex column, so order alone puts the code first and each kind below its
+   heading. The page's own order of elements is not touched. Everything unmarked (the end of the list) stays last. */
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="code"], [data-pr-focus-file="code"]) {
+  order: -50;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="tests"], [data-pr-focus-file="tests"]) {
+  order: -40;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="lockfiles"], [data-pr-focus-file="lockfiles"]) {
+  order: -30;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="generated"], [data-pr-focus-file="generated"]) {
+  order: -20;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) div:is([data-pr-focus-section="custom"], [data-pr-focus-file="custom"]) {
+  order: -10;
+}
+/* The older files view (signed out) is not a flex column and nests its files in batches. Flattening the batches
+   makes every file an item of one column, so the same order works. */
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) #files {
+  display: flex;
+  flex-direction: column;
+}
+html:has(.pr-focus-bar[data-pr-focus-mode="sections"]) #files :is(.js-diff-progressive-container, copilot-diff-entry) {
+  display: contents;
+}
+/* A folded section: its files go while a heading that opens it again is there. */
+html:has([data-pr-focus-section="code"][data-pr-focus-collapsed]) [data-pr-focus-file="code"],
+html:has([data-pr-focus-section="tests"][data-pr-focus-collapsed]) [data-pr-focus-file="tests"],
+html:has([data-pr-focus-section="lockfiles"][data-pr-focus-collapsed]) [data-pr-focus-file="lockfiles"],
+html:has([data-pr-focus-section="generated"][data-pr-focus-collapsed]) [data-pr-focus-file="generated"],
+html:has([data-pr-focus-section="custom"][data-pr-focus-collapsed]) [data-pr-focus-file="custom"] {
+  display: none !important;
+}
+/* Our file list stands in for GitHub's file tree, which comes right after it. The tree is hidden only while the
+   list is there. */
+.pr-focus-files + * {
+  display: none !important;
+}
+
 /* Colors come from GitHub's own theme variables so light and dark mode both work. */
 .pr-focus-bar {
   display: flex;
@@ -21,7 +64,7 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   font-size: 12px;
 }
 .pr-focus-bar button {
-  margin-left: auto;
+  margin-left: 0;
   padding: 2px 10px;
   border: 1px solid var(--borderColor-default, #d1d9e0);
   border-radius: 6px;
@@ -29,6 +72,142 @@ ul:not([data-pr-focus-show]) > [data-pr-focus-noise]:not(:has(input[type="checkb
   color: var(--fgColor-default, #1f2328);
   font: inherit;
   cursor: pointer;
+}
+.pr-focus-bar button:first-of-type {
+  margin-left: auto;
+}
+/* Of a row of choices, the pressed button is the current one. */
+.pr-focus-bar button[aria-pressed="true"] {
+  border-color: var(--borderColor-accent-emphasis, #0969da);
+  background: var(--bgColor-accent-muted, #ddf4ff);
+  font-weight: 600;
+}
+
+/* GitHub's React list spaces its items itself; the older view does not. */
+#files > .pr-focus-section {
+  margin-bottom: 16px;
+}
+/* A section's heading, above its files in the diff and in our file list. */
+:is(.pr-focus-section, .pr-focus-files-section) > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  border-radius: 6px;
+  background: var(--bgColor-muted, #f6f8fa);
+  color: var(--fgColor-default, #1f2328);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+:is(.pr-focus-section, .pr-focus-files-section) > button::before {
+  content: "▾";
+  color: var(--fgColor-muted, #59636e);
+}
+:is(.pr-focus-section, .pr-focus-files-section) > button[aria-expanded="false"]::before {
+  content: "▸";
+}
+
+.pr-focus-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 12px;
+  font-size: 13px;
+}
+.pr-focus-files-section > button {
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+/* A section's tree is made of copies of GitHub's own tree rows, which GitHub's styles draw. Ours are only what
+   GitHub's tree does not have: a file's line counts after its name, and the look of a viewed file. */
+.pr-focus-files [role="tree"] {
+  margin: 0;
+  /* GitHub's root carries its own right padding; the list already has it. */
+  padding: 0 !important;
+  list-style: none;
+}
+.pr-focus-files-lines {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-left: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.pr-focus-files-added {
+  color: var(--fgColor-success, #1a7f37);
+}
+.pr-focus-files-deleted {
+  color: var(--fgColor-danger, #d1242f);
+}
+/* A file's icon says how the file changed, in the colors of GitHub's React tree: added green, changed gray,
+   deleted red, renamed amber. A row copied from that tree already has them. A plain row carries the icon of
+   GitHub's older tree, which has changed amber and renamed gray, so these two rules put it in the same colors. */
+.pr-focus-files [data-pr-focus-status="modified"] > div svg {
+  color: var(--fgColor-muted, #59636e) !important;
+}
+.pr-focus-files [data-pr-focus-status="renamed"] > div svg {
+  color: var(--fgColor-attention, #9a6700) !important;
+}
+.pr-focus-files [data-viewed] a,
+.pr-focus-files [data-viewed] svg {
+  opacity: 0.55;
+}
+.pr-focus-files [data-viewed] a::after {
+  content: " ✓";
+}
+
+/* Rows of our own, where GitHub's cannot be copied (the older files view): the same tree, drawn plainly. */
+.pr-focus-files-row,
+.pr-focus-files-row ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pr-focus-files-box {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pr-focus-files-box:hover {
+  background: var(--control-transparent-bgColor-hover, #818b981a);
+}
+.pr-focus-files-row[aria-current="true"] > .pr-focus-files-box {
+  background: var(--control-transparent-bgColor-selected, #818b9826);
+  box-shadow: inset 3px 0 var(--fgColor-accent, #0969da);
+}
+.pr-focus-files-box > svg {
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+.pr-focus-files-box::before {
+  flex-shrink: 0;
+  width: 16px;
+  color: var(--fgColor-muted, #59636e);
+  content: "";
+}
+.pr-focus-files-row[aria-expanded="true"] > .pr-focus-files-box::before {
+  content: "▾";
+}
+.pr-focus-files-row[aria-expanded="false"] > .pr-focus-files-box::before {
+  content: "▸";
+}
+.pr-focus-files-name {
+  overflow: hidden;
+  color: var(--fgColor-default, #1f2328) !important;
+  text-decoration: none !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pr-focus-linear {

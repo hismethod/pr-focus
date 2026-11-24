@@ -4,77 +4,198 @@
     <meta charset="utf-8" />
     <title>PR Focus</title>
     <style>
+      /* GitHub's own light and dark colors, so the page sits next to GitHub without a jolt. */
       :root {
         color-scheme: light dark;
+        --fg: #1f2328;
+        --muted: #59636e;
+        --line: #d1d9e0;
+        --error: #cf222e;
       }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #f0f6fc;
+          --muted: #9198a1;
+          --line: #3d444d;
+          --error: #ff7b72;
+        }
+      }
+      /* The toolbar popup takes its width from the page. */
       body {
-        width: 340px;
+        box-sizing: border-box;
+        width: 372px;
         margin: 0;
-        padding: 12px 16px 16px;
+        padding: 14px 16px 6px;
+        color: var(--fg);
         font: 13px/1.45 system-ui, sans-serif;
       }
+      /* The options page in a tab or in the extensions dialog: a column in the middle. */
+      @media (min-width: 600px) {
+        body {
+          width: auto;
+          max-width: 560px;
+          margin: 0 auto;
+          padding: 28px 24px 24px;
+        }
+      }
       h1 {
-        margin: 0 0 8px;
-        font-size: 15px;
+        margin: 0;
+        font-size: 16px;
       }
       h2 {
-        margin: 14px 0 6px;
+        margin: 0;
         font-size: 13px;
       }
-      label {
-        display: block;
-        margin: 6px 0;
+      p {
+        margin: 0;
       }
-      input[type="text"] {
-        box-sizing: border-box;
-        width: 100%;
-        margin-top: 4px;
-        padding: 4px 6px;
-        font: 12px ui-monospace, monospace;
+      .note {
+        color: var(--muted);
+        font-size: 12px;
       }
-      .hint {
-        margin: 2px 0 0;
-        opacity: 0.7;
+      section {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+      /* One setting: a control with its label, and one line that says what it does. */
+      .setting {
+        margin-top: 12px;
+      }
+      .setting > label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+      }
+      .setting > label > input {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+      /* Under a checkbox or a radio button the line starts where the label's text does. */
+      .setting > label:has(input) ~ * {
+        margin-left: 24px;
+      }
+      .setting > .note,
+      .error {
+        margin-top: 2px;
         font-size: 12px;
       }
       .error {
-        margin: 2px 0 0;
-        color: #d1242f;
-        font-size: 12px;
+        color: var(--error);
+      }
+      input[type="text"],
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        margin-top: 4px;
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: Field;
+        color: inherit;
+        font: 12px/1.5 ui-monospace, monospace;
+      }
+      textarea {
+        display: block;
+        resize: vertical;
+      }
+      fieldset {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+      /* The settings of Sections sit under that choice. They do little while All is chosen, so they are dimmed. */
+      .sub {
+        margin-top: 10px;
+        padding: 2px 0 2px 12px;
+        border-left: 2px solid var(--line);
+      }
+      fieldset:has(input[value="all"]:checked) .sub {
+        opacity: 0.55;
+      }
+      #saveError {
+        margin-top: 14px;
       }
     </style>
   </head>
   <body>
     <h1>PR Focus</h1>
+    <p class="note">Every change is saved as you make it.</p>
 
-    <h2>Hide on PR lists</h2>
-    <label><input type="checkbox" id="hideBots" /> PRs opened by bots</label>
-    <p class="hint">Dependabot, Renovate, github-actions, and any author ending in [bot].</p>
-    <label><input type="checkbox" id="hideDrafts" /> Draft PRs</label>
-    <label>
-      Titles matching (regular expression, case-insensitive)
-      <input type="text" id="titlePattern" placeholder="^chore\(deps\)|^bump " spellcheck="false" />
-    </label>
-    <p class="error" id="titlePatternError" hidden>Not a valid regular expression, so it is ignored.</p>
-    <p class="error" id="titlePatternAll" hidden>This pattern matches every title, so every PR is hidden.</p>
+    <section>
+      <h2>PR lists</h2>
+      <p class="note">Repository pull request lists and github.com/pulls.</p>
+      <div class="setting">
+        <label><input type="checkbox" id="hideBots" /> Hide PRs opened by bots</label>
+        <p class="note">Dependabot, Renovate, github-actions, and any author ending in [bot].</p>
+      </div>
+      <div class="setting">
+        <label><input type="checkbox" id="hideDrafts" /> Hide draft PRs</label>
+        <p class="note">Other people's drafts. Your own always stay.</p>
+      </div>
+      <div class="setting">
+        <label for="titlePattern">Hide PRs whose title matches</label>
+        <input type="text" id="titlePattern" placeholder="^chore\(deps\)|^bump " spellcheck="false" />
+        <p class="note">A regular expression, case-insensitive. Empty hides nothing.</p>
+        <p class="error" id="titlePatternError" hidden>Not a valid regular expression, so it is ignored.</p>
+        <p class="error" id="titlePatternAll" hidden>This pattern matches every title, so every PR is hidden.</p>
+      </div>
+    </section>
 
-    <h2>Linear</h2>
-    <label>
-      Workspace (the part after linear.app/)
-      <input type="text" id="linearWorkspace" placeholder="acme" spellcheck="false" />
-    </label>
-    <p class="error" id="linearWorkspaceError" hidden>Use letters, digits and dashes, or paste a linear.app URL.</p>
-    <p class="hint">
-      Needed for Linear buttons on PR list rows. On a PR page with no workspace set, the workspace of the page's
-      Linear link is used.
-    </p>
-    <label>
-      Team keys (optional)
-      <input type="text" id="linearTeams" placeholder="ENG, OPS" spellcheck="false" />
-    </label>
-    <p class="hint">
-      Only keys with these prefixes get a button, for example ENG-123. Leave empty to accept any key of that form.
-    </p>
+    <section>
+      <h2>Changed files of a PR</h2>
+      <p class="note">The Files changed tab of a pull request. Alt+Shift+F switches between the two views.</p>
+      <fieldset id="diffMode">
+        <div class="setting">
+          <label><input type="radio" name="diffMode" value="all" /> All</label>
+          <p class="note">GitHub's own view, with a count of the tests and noise above the files.</p>
+        </div>
+        <div class="setting">
+          <label><input type="radio" name="diffMode" value="sections" /> Sections</label>
+          <p class="note">The code first, then tests and noise in sections below it, in the diff and in the file list.</p>
+          <div class="sub">
+            <p class="note">What Sections moves below the code. In All these only change the count.</p>
+            <div class="setting">
+              <label><input type="checkbox" id="diffTests" /> Tests</label>
+              <p class="note">*.test.*, *.spec.*, *_test.*, test_*.py, *Test.java, and folders such as __tests__, test, e2e, fixtures.</p>
+            </div>
+            <div class="setting">
+              <label><input type="checkbox" id="diffLockfiles" /> Lockfiles</label>
+              <p class="note">*.lock, package-lock.json, pnpm-lock.yaml, bun.lockb, go.sum.</p>
+            </div>
+            <div class="setting">
+              <label><input type="checkbox" id="diffGenerated" /> Generated files</label>
+              <p class="note">Files GitHub marks as generated, *.snap, *.min.js, *.map, *.pb.go, and folders such as dist, build, vendor.</p>
+            </div>
+            <div class="setting">
+              <label for="diffGlobs">Custom patterns</label>
+              <textarea id="diffGlobs" rows="3" placeholder="*.md&#10;docs/&#10;src/legacy/**" spellcheck="false"></textarea>
+              <p class="note">One per line, read like .gitignore lines: *.md at any depth, docs/ for a folder, src/legacy/** from the root.</p>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+
+    <section>
+      <h2>Linear</h2>
+      <p class="note">A button that opens a PR's Linear issue, on PR pages and PR lists.</p>
+      <div class="setting">
+        <label for="linearWorkspace">Workspace</label>
+        <input type="text" id="linearWorkspace" placeholder="acme" spellcheck="false" />
+        <p class="note">The part after linear.app/. List rows need it; a PR page can take it from the page's Linear link.</p>
+        <p class="error" id="linearWorkspaceError" hidden>Use letters, digits and dashes, or paste a linear.app URL.</p>
+      </div>
+      <div class="setting">
+        <label for="linearTeams">Team keys</label>
+        <input type="text" id="linearTeams" placeholder="ENG, OPS" spellcheck="false" />
+        <p class="note">Only keys with these prefixes get a button, such as ENG-123. Empty accepts any key of that form.</p>
+      </div>
+    </section>
 
     <p class="error" id="saveError" role="alert" hidden>Not saved. It is sent again with your next change.</p>
 

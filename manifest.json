@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "PR Focus",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minimum_chrome_version": "105",
   "homepage_url": "https://github.com/hismethod/pr-focus",
-  "description": "Hides bot and draft pull requests on GitHub PR lists so the ones that need you stand out, and links each PR to its Linear issue.",
+  "description": "Hides bot and draft PRs on GitHub PR lists, shows a PR's diff in sections with the code first, and links PRs to Linear issues.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
