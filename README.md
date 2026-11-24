@@ -23,13 +23,20 @@ A bar above the changed files counts the tests and noise in the diff and offers 
 
 | Mode | What you see | Bar text |
 | --- | --- | --- |
-| **All** (default) | GitHub's own view. | `PR Focus: tests & noise in 5 of 10 files (4 tests, 1 lockfile) · +291 −97` |
-| **Sections** | The code first, then a section for each kind of noise, in the diff and in the file list on the left. | `5 files in sections below (4 tests, 1 lockfile) · +291 −97 · 5 files of code first, +26 −17` |
+| **Sections** (default) | The code first, then a section for each kind of noise, in the diff and in the file list on the left. | `PR Focus: 5 files in sections below (4 tests, 1 lockfile) · +291 −97 · 5 files of code first, +26 −17` |
+| **All** | GitHub's own view. | `PR Focus: tests & noise in 5 of 10 files (4 tests, 1 lockfile) · +291 −97` |
 
 In **Sections**:
 
 - **The diff** has a heading above each section with its file count and line counts (`Code · 5 files · +26 −17`, `Tests · 4 files · +98 −7`). The sections come in the order Code, Tests, Lockfiles, Generated, Custom.
-- **The file list on the left** is PR Focus's own list in the place of GitHub's file tree, with the same sections and headings. Inside a section the files are a folder tree like GitHub's: a chain of folders with nothing else in them is one row (`packages/vite/src/node/__tests__`). Each file shows its added and removed lines. A click goes to the file through GitHub's own link, so the page moves as it does from GitHub's tree.
+- **The file list on the left** is PR Focus's own list in the place of GitHub's file tree, with the same sections and headings. Under each heading is a tree that looks and works like GitHub's own, because its rows are copies of GitHub's rows:
+  - a chevron on each folder opens and closes it, and the open and closed folders are kept for each pull request while the tab lives,
+  - GitHub's folder icons, the same row height, indentation and indent lines, hover color, and light and dark themes,
+  - a chain of folders with nothing else in them is one row (`packages/vite/src/node/__tests__`), as in GitHub's tree,
+  - each file's icon is GitHub's own icon for how the file changed: added in green, changed in amber, deleted in red, renamed in gray. A renamed file shows its new name, and the row's tooltip says the path and the change,
+  - the file the page is at is marked, and the mark follows the scroll (GitHub's own tree only marks a file you clicked),
+  - each file shows its added and removed lines, which GitHub's tree does not,
+  - a click on a file goes through GitHub's own link, so the page moves as it does from GitHub's tree.
 - **A heading folds its section** in both places at once. Folding Code brings the tests to the top.
 - **GitHub's filter still works.** The filter field and its options take files out of the page, and the sections and the list follow.
 - **Viewed files** are dimmed and ticked in the list.
@@ -65,11 +72,11 @@ Stored in `chrome.storage.sync`, so they follow your browser profile. Only the s
 | PRs opened by bots | on | |
 | Draft PRs | on | Never your own drafts. |
 | Titles matching | empty | Invalid patterns are ignored and flagged. A pattern that matches every title is flagged too. |
-| Tests & noise in a PR's changed files | All | All or Sections. The same choice as the buttons above the changed files. |
-| Tests | on | |
+| Changed files of a PR | Sections | Sections or All. The same choice as the buttons above the changed files. |
+| Tests | on | What Sections moves below the code. In All these only change the count in the bar. |
 | Lockfiles | on | |
 | Generated files | on | Includes files GitHub marks as generated. |
-| Custom globs | empty | One per line, read like `.gitignore` lines. |
+| Custom patterns | empty | One per line, read like `.gitignore` lines. |
 | Linear workspace | empty | The part after `linear.app/`; a pasted Linear URL also works. |
 | Linear team keys | empty | Comma or space separated, for example `ENG, OPS`. Empty accepts any key. |
 
@@ -87,6 +94,9 @@ Stored in `chrome.storage.sync`, so they follow your browser profile. Only the s
 - `src/content.css`: the rules that hide and move things. For changed files, `content.js` only marks each file with its kind. The CSS reorders marked files, folds a section and hides GitHub's file tree only while the bar, the section's heading or our own file list is on the page. If one of them cannot be drawn, the page is GitHub's again.
 - **Sections does not move any of GitHub's elements.** GitHub's list of files is a flex column, so CSS `order` puts the code first and each kind below its heading. The headings are the only elements added to that list. React keeps rendering its own children in its own order, and lazily loaded diffs keep loading.
 - **GitHub's file tree is hidden, not changed.** Our list is inserted right before it, and one CSS rule hides whatever follows our list. The list is built from the file headers GitHub has on the page (they are all there before the diffs load) plus the files only the tree lists.
+
+- `src/options.html` / `src/options.js`: the popup and options page (same file). The view of the changed files is a radio group, and the kinds of noise sit under its Sections choice.
+- `icons/`: `icon.svg` is the source of the extension icon, a cat head crossed by one highlighted row (an original drawing, not GitHub's mark). The 16, 32, 48 and 128 px PNGs are renders of it. The 128 px one is 96 px artwork with 16 px of transparent padding, as the Chrome Web Store asks. `design/icon-candidates/` keeps the three candidates that were compared; the icon is `b-cat-row.svg`.
 
 No build step and no dependencies.
 
@@ -115,7 +125,7 @@ Check by hand before each release, with the extension loaded:
 5. The same public list signed out: turn on **Allow in Incognito** on the extension's details page and open the list in an incognito window. Rows are still hidden.
 6. A repository where you can tick rows: select all, and the bar says the hidden rows are shown because selected.
 7. The changed files of a PR with tests and a lockfile, for example `github.com/vitejs/vite/pull/24039/files`: the bar counts them. **Sections** puts the code first with `Code`, `Tests` and `Lockfiles` headings, and the file list on the left shows the same three sections in place of GitHub's tree. **All** brings GitHub's view and tree back.
-8. In Sections: click a file in the list and the page goes to it. Fold `Code` in the list and the code folds in the diff too. Type in GitHub's filter field and both follow.
+8. In Sections: the tree under each heading looks like GitHub's (compare with All). Close and open a folder with its chevron. Click a file and the page goes to it. Scroll the diff and the marked file follows. Fold `Code` in the list and the code folds in the diff too. Type in GitHub's filter field and both follow. On a PR that adds, changes, deletes and renames files, for example `github.com/withastro/astro/pull/9647/files`, the four icons read apart.
 9. On that PR, go to the Commits tab and back to Files changed through GitHub's own tabs: the bar and the mode carry over. Open another PR: the mode is the same.
 10. The same PR signed out (the older files view): Sections works there too.
 
@@ -128,7 +138,9 @@ When you load the unpacked folder for development, switch off any other copy of 
 - **Changed files markup.** Files are read from GitHub's file headers: the path, the `Lines changed: 19 additions & 2 deletions` text for screen readers, and the diff anchor that ties a file to its tree entry. The newer view is found through `data-testid="progressive-diffs-list"`, the older one through `#files .file`. If GitHub renames those, the bar does not appear and every file shows. Checked on 2026-11-24, signed in (newer view, split layout) and signed out (older view, unified layout).
 - **Sections depends on GitHub's list being a flex column.** If GitHub lays the list out another way, files stay in GitHub's order and the headings gather at the top. In the older view the CSS flattens GitHub's batch containers (`.js-diff-progressive-container`, `copilot-diff-entry`) to get one column.
 - **Our file list depends on where GitHub's tree is.** It is found through `ul[aria-label="File Tree"]`. When GitHub's tree is not on the page (you closed the file tree panel), there is no list, and the diff is still in sections.
-- **The list is simpler than GitHub's tree.** Its folders do not fold, it has no file type icons and no marker for the file you are at, and it is not a keyboard tree: Tab moves through the files. All shows GitHub's tree again.
+- **Our tree is copied from GitHub's rows.** A row of ours is a copy of a row of GitHub's tree, found through Primer's unhashed class names (`PRIVATE_TreeView-item-container`, `-toggle`, `-visual`, `-content-text`, `-level-line`). GitHub's styles then draw it. If GitHub renames those, or in the older files view, the same tree is drawn plainly by `content.css`: chevrons, folding, the mark and the status icons work, folder icons and indent lines are missing.
+- **Where our tree differs from GitHub's.** The arrow keys do not move through it: Tab reaches each row, and Enter or Space opens a folder or goes to a file. The list does not scroll by itself to keep the marked file in view. A closed folder's icon is GitHub's closed folder icon, set by its path, because GitHub's tree only holds the icon of the state a folder is in.
+- **Status colors are not GitHub's in two cases.** A file's change is read from the icon GitHub's tree draws for it. GitHub's React tree draws a changed file gray and a renamed one amber. Here a changed file is amber and a renamed one gray, as in GitHub's older tree. Two rules in `content.css` do that.
 - **Sections changes what you see, not GitHub's order.** GitHub's own next and previous file keys and the tab order in the diff follow GitHub's order, so they jump between sections.
 - **Folded sections are not remembered.** They open again when the tab reloads. The mode is remembered.
 - **Viewed is read from the newer view only.** The older view's Viewed checkbox is not read. Viewed state was checked by setting the button's state in the page, not by marking a real file as viewed.

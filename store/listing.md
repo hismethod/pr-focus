@@ -29,9 +29,9 @@ On pull request lists
 
 In a pull request's changed files
 - Counts the tests, lockfiles and generated files in the diff, with their added and removed lines.
-- Sections: shows the code first, then a section each for tests, lockfiles and generated files. A heading shows each section's size and folds it away.
-- The file list on the left is grouped into the same sections, with each file's added and removed lines. A click goes to the file.
-- All: GitHub's own view. This is the default. Your choice is remembered, and Alt+Shift+F switches it.
+- Sections, the default: shows the code first, then a section each for tests, lockfiles and generated files. A heading shows each section's size and folds it away.
+- The file list on the left is grouped into the same sections. Each section is a tree like GitHub's own: folders open and close, each file shows whether it was added, changed, deleted or renamed and how many lines changed, and the file you are at is marked.
+- All: GitHub's own view. Your choice is remembered, and Alt+Shift+F switches it.
 - You choose what counts: switch each kind off, or add your own file patterns such as *.md or docs/.
 
 Linear
@@ -77,7 +77,7 @@ No
 | Store icon, 128x128 | `icons/icon-128.png` | Ready. 96 px artwork with 16 px of transparent padding. |
 | Screenshot 1, 1280x800 | `store/screenshots/1-noise-hidden.png` | Ready. Bot and draft PRs hidden, with the count bar. |
 | Screenshot 2, 1280x800 | `store/screenshots/2-shown-dimmed.png` | Ready. The same list after **Show them**. |
-| Screenshot 3, 1280x800 | `store/screenshots/3-diff-sections.png` | Ready. A PR's changed files in **Sections**: the bar, the sectioned file list and the code first. |
+| Screenshot 3, 1280x800 | `store/screenshots/3-diff-sections.png` | Ready. A PR's changed files in **Sections**: the bar, the file tree in sections with the four kinds of change, and the code first. |
 | Screenshot 4, 1280x800 | `store/screenshots/4-diff-section-heading.png` | Ready. The same PR further down: the `Tests` heading and the test files. |
 | Screenshot 5, 1280x800 | `store/screenshots/5-diff-code-folded.png` | Ready. The same PR with `Code` folded, so the tests come first. |
 | Small promo tile, 440x280 | | Optional, not made. |
@@ -85,7 +85,7 @@ No
 
 The icon is an original drawing of a cat head crossed by one highlighted row, the pull request in focus. It is not GitHub's Octocat or Invertocat mark and does not reuse their shapes; keep it that way if the icon changes.
 
-Screenshots 1 and 2 are of `github.com/dependabot/dependabot-core/pulls`, and 3 to 5 of `github.com/vitejs/vite/pull/24039`. Both are public repositories, scrolled so the signed-in account in GitHub's header is out of view. Take new screenshots from public repositories only. The store shows at most five screenshots.
+Screenshots 1 and 2 are of `github.com/dependabot/dependabot-core/pulls`, and 3 to 5 of `github.com/withastro/astro/pull/9647`, which adds, changes, deletes and renames files. Both are public repositories, scrolled so the signed-in account in GitHub's header is out of view. Take new screenshots from public repositories only. The store shows at most five screenshots.
 
 There is no screenshot of the Linear button yet. It needs a public repository whose pull request titles carry Linear keys.
 
@@ -147,12 +147,12 @@ The tab is meant for extensions that need credentials. PR Focus needs none, so t
 ```
 1. Sign in to GitHub. (It also works signed out, on public repositories.)
 2. Open https://github.com/dependabot/dependabot-core/pulls. Bot and draft pull requests are hidden. A bar above the list says how many.
-3. Open https://github.com/vitejs/vite/pull/24039/files. A bar above the files counts tests and lockfiles. "Sections" groups the diff and the file list by kind. "All" restores GitHub's view.
+3. Open https://github.com/vitejs/vite/pull/24039/files. The diff and the file list are in sections: Code, Tests, Lockfiles. A bar above the files counts them. "All" restores GitHub's view.
 4. Settings are in the toolbar popup.
 No account, no network requests, no remote code.
 ```
 
-The store limits this field to 500 characters. The text above is 488.
+The store limits this field to 500 characters. The text above is 487.
 
 ## Before submitting
 
