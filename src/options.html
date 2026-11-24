@@ -25,12 +25,17 @@
         display: block;
         margin: 6px 0;
       }
-      input[type="text"] {
+      input[type="text"],
+      select,
+      textarea {
         box-sizing: border-box;
         width: 100%;
         margin-top: 4px;
         padding: 4px 6px;
         font: 12px ui-monospace, monospace;
+      }
+      textarea {
+        resize: vertical;
       }
       .hint {
         margin: 2px 0 0;
@@ -57,6 +62,37 @@
     </label>
     <p class="error" id="titlePatternError" hidden>Not a valid regular expression, so it is ignored.</p>
     <p class="error" id="titlePatternAll" hidden>This pattern matches every title, so every PR is hidden.</p>
+
+    <h2>Tests &amp; noise in a PR's changed files</h2>
+    <label>
+      Show them
+      <select id="diffMode">
+        <option value="all">All: as GitHub shows them</option>
+        <option value="sections">Sections: below the code, by kind</option>
+        <option value="hide">Hide noise</option>
+      </select>
+    </label>
+    <p class="hint">
+      The same choice as the buttons above the changed files (Alt+Shift+F steps through it). Remembered for every PR.
+      The boxes below say what counts as noise.
+    </p>
+    <label><input type="checkbox" id="diffTests" /> Tests</label>
+    <p class="hint">*.test.*, *.spec.*, *_test.*, test_*.py, *Test.java, *Tests.swift, and the folders __tests__, test, tests, e2e, fixtures.</p>
+    <label><input type="checkbox" id="diffLockfiles" /> Lockfiles</label>
+    <p class="hint">*.lock, package-lock.json, pnpm-lock.yaml, bun.lockb, go.sum.</p>
+    <label><input type="checkbox" id="diffGenerated" /> Generated files</label>
+    <p class="hint">
+      Files GitHub marks as generated, *.snap, *.min.js, *.map, *.pb.go, *.generated.*, and the folders
+      __snapshots__, dist, build, vendor.
+    </p>
+    <label>
+      Custom (one glob per line)
+      <textarea id="diffGlobs" rows="3" placeholder="*.md&#10;docs/&#10;src/legacy/**" spellcheck="false"></textarea>
+    </label>
+    <p class="hint">
+      Read like .gitignore lines: * stays inside a folder, ** crosses folders, a name without a slash matches at any
+      depth, and a folder covers everything in it.
+    </p>
 
     <h2>Linear</h2>
     <label>

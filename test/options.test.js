@@ -37,6 +37,12 @@ function openOptions(stored = {}) {
   return page;
 }
 
+test('options.html has a field for every setting', () => {
+  // options.js looks each settings key up by id, so a setting without a field would stop the whole page.
+  const html = require('node:fs').readFileSync(require.resolve('../src/options.html'), 'utf8');
+  for (const key of Object.keys(prFocus.DEFAULTS)) assert.ok(html.includes(` id="${key}"`), key);
+});
+
 test('fields show the stored settings, or the defaults', () => {
   const page = openOptions({ linearWorkspace: 'acme' });
   assert.equal(page.el('linearWorkspace').value, 'acme');

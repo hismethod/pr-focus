@@ -1,6 +1,18 @@
 // Pure rule logic, no DOM. Loaded by the content script, the options page and the unit tests.
 const prFocus = (() => {
-  const DEFAULTS = { hideBots: true, hideDrafts: true, titlePattern: '', linearWorkspace: '', linearTeams: '' };
+  const DEFAULTS = {
+    hideBots: true,
+    hideDrafts: true,
+    titlePattern: '',
+    linearWorkspace: '',
+    linearTeams: '',
+    // A PR's changed files. diffMode is the All / Sections / Hide noise choice; the rest say what counts as noise.
+    diffMode: 'all',
+    diffTests: true,
+    diffLockfiles: true,
+    diffGenerated: true,
+    diffGlobs: '',
+  };
 
   const BOT_LOGINS = ['dependabot', 'dependabot-preview', 'renovate', 'renovate-bot', 'github-actions'];
 
@@ -53,6 +65,121 @@ const prFocus = (() => {
     const detail = Object.entries(counts).map(([reason, n]) => `${n} ${REASON_LABEL[reason]}`);
     return `PR Focus: ${state} (${detail.join(', ')})`;
   }
+
+  // Kinds of noise among a PR's changed files, in the order they are tried, each with its settings key and globs.
+  const FILE_KINDS = {
+    tests: {
+      setting: 'diffTests',
+      globs: [
+        ...['*.test.*', '*.spec.*', '*.e2e.*', '*.e2e-spec.*', '*_test.*', 'test_*.py', 'conftest.py', '*_spec.rb'],
+        ...['*Test.java', '*Tests.java', '*Test.kt', '*Tests.kt', '*Tests.swift', '*Test.cs', '*Tests.cs', '*Test.php'],
+        ...['__tests__/', 'test/', 'tests/', 'Tests/', '*.Tests/', 'e2e/', 'cypress/'],
+        ...['fixtures/', '__fixtures__/', '__mocks__/', 'testdata/'],
+      ],
+    },
+    lockfiles: {
+      setting: 'diffLockfiles',
+      globs: [
+        // *.lock: yarn, Cargo, poetry, Gemfile, composer, Podfile, Pipfile, uv, bun, deno, flake, mix, pubspec.
+        ...['*.lock', 'package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'bun.lockb', 'go.sum'],
+        ...['Package.resolved', 'packages.lock.json', 'gradle.lockfile', '.terraform.lock.hcl'],
+      ],
+    },
+    generated: {
+      setting: 'diffGenerated',
+      globs: [
+        ...['__snapshots__/', '*.snap', '*.min.js', '*.min.css', '*.map', 'dist/', 'build/', 'vendor/', 'node_modules/'],
+        ...['*.pb.go', '*_pb2.py', '*.g.dart', '*.generated.*', '*.gen.*', '*_generated.*'],
+      ],
+    },
+  };
+
+  const GLOB_PART = new Map([
+    ['**/', '(?:.*/)?'],
+    ['**', '.*'],
+    ['*', '[^/]*'],
+    ['?', '[^/]'],
+  ]);
+
+  // One glob as RegExp source over a repository path, read like a .gitignore line: * stays inside a path segment,
+  // ** crosses segments, a glob without a slash matches at any depth, and a folder covers everything in it.
+  function globSource(glob) {
+    const anchored = glob.replace(/\/$/, '').includes('/');
+    const body = glob
+      .replace(/^\/|\/$/g, '')
+      .split(/(\*\*\/|\*\*|\*|\?)/)
+      .map((part) => GLOB_PART.get(part) ?? part.replace(/[.+^${}()|[\]\\]/g, '\\$&'))
+      .join('');
+    return `${anchored ? '^' : '(?:^|/)'}${body}(?:/|$)`;
+  }
+
+  // "*.md, docs/" or one glob per line -> ['*.md', 'docs/']
+  const globList = (input) => (input || '').split(/[\n,]+/).map((glob) => glob.trim()).filter(Boolean);
+
+  // Globs -> one RegExp, or null for an empty list.
+  const globRegex = (globs) => (globs.length ? new RegExp(globs.map(globSource).join('|')) : null);
+
+  for (const kind of Object.values(FILE_KINDS)) kind.re = globRegex(kind.globs);
+
+  // The custom globs option compiled once per value: every file of a diff is tried on every pass.
+  let customInput;
+  let customRe;
+  function customGlobs(input) {
+    if (input !== customInput) [customInput, customRe] = [input, globRegex(globList(input))];
+    return customRe;
+  }
+
+  // Why a changed file is hidden under these settings ('tests' | 'lockfiles' | 'generated', or 'custom' for the
+  // user's own globs), or null to keep it. marked: GitHub itself collapsed the file as generated.
+  // A file belongs to the first kind it matches, so switching that kind off shows it even when GitHub marks it.
+  function fileNoise(path, settings, marked) {
+    const kind =
+      Object.keys(FILE_KINDS).find((name) => FILE_KINDS[name].re.test(path)) || (marked ? 'generated' : null);
+    if (kind && settings[FILE_KINDS[kind].setting]) return kind;
+    return customGlobs(settings.diffGlobs)?.test(path) ? 'custom' : null;
+  }
+
+  // Path in a file header of the diff: GitHub wraps it in direction marks and writes a rename as "old renamed to new".
+  const headerPath = (text) =>
+    (text || '')
+      .replace(/[‎‏]/g, '')
+      .trim()
+      .replace(/^.* renamed to /, '');
+
+  // "Lines changed: 19 additions & 2 deletions" or "21 changes: 19 additions & 2 deletions" -> { added: 19, deleted: 2 }.
+  // Zeros when the text carries no counts (a binary file).
+  function lineStat(text) {
+    const m = /([\d,]+) additions? & ([\d,]+) deletions?/.exec(text || '');
+    const number = (digits) => Number(digits.replace(/,/g, ''));
+    return m ? { added: number(m[1]), deleted: number(m[2]) } : { added: 0, deleted: 0 };
+  }
+
+  // How a PR's changed files are shown: as GitHub shows them, with the noise in sections below the code, or with
+  // the noise hidden. Anything else that reaches the setting counts as 'all'.
+  const FILE_MODE_LABEL = { all: 'All', sections: 'Sections', hide: 'Hide noise' };
+  const FILE_MODES = Object.keys(FILE_MODE_LABEL);
+  const fileMode = (value) => (FILE_MODES.includes(value) ? value : 'all');
+  const nextFileMode = (value) => FILE_MODES[(FILE_MODES.indexOf(fileMode(value)) + 1) % FILE_MODES.length];
+
+  const fileCount = (n) => `${n} file${n === 1 ? '' : 's'}`;
+  const lineCount = ({ added, deleted }) => `+${added} −${deleted}`;
+
+  // Text of the bar above a PR's changed files. kinds is { kind: { files, added, deleted } } of the noise files,
+  // rest the same sums of the files that are not noise.
+  function filesBarText({ kinds, rest, mode }) {
+    const names = [...Object.keys(FILE_KINDS), 'custom'].filter((kind) => kinds[kind]);
+    const noise = { files: 0, added: 0, deleted: 0 };
+    for (const kind of names) for (const key of Object.keys(noise)) noise[key] += kinds[kind][key];
+    const detail = names.map((kind) => `${kinds[kind].files} ${kinds[kind].files === 1 ? kind.replace(/s$/, '') : kind}`);
+    const what = `(${detail.join(', ')}) · ${lineCount(noise)}`;
+    if (mode === 'hide') return `PR Focus: ${fileCount(noise.files)} hidden ${what} · ${fileCount(rest.files)} left, ${lineCount(rest)}`;
+    if (mode === 'sections')
+      return `PR Focus: ${fileCount(noise.files)} in sections below ${what} · ${fileCount(rest.files)} of code first, ${lineCount(rest)}`;
+    return `PR Focus: tests & noise in ${noise.files} of ${fileCount(noise.files + rest.files)} ${what}`;
+  }
+
+  // Heading of one section in Sections mode: "Tests · 4 files · +98 −7".
+  const sectionText = (kind, sum) => `${kind[0].toUpperCase()}${kind.slice(1)} · ${fileCount(sum.files)} · ${lineCount(sum)}`;
 
   // Prefixes that look like issue keys but never are. Not used when the team keys option lists the real ones.
   const NOT_KEYS = new Set([
@@ -123,6 +250,14 @@ const prFocus = (() => {
     authorInQuery,
     authorFromRowText,
     barText,
+    fileNoise,
+    headerPath,
+    lineStat,
+    FILE_MODE_LABEL,
+    fileMode,
+    nextFileMode,
+    filesBarText,
+    sectionText,
     teamKeys,
     titleKeys,
     branchKeys,
